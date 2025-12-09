@@ -176,8 +176,14 @@ const Auth = {
 
       // Default redirect URL
       if (!redirectUrl) {
-        redirectUrl = `${window.location.origin}/index.html`;
+        // Ensure we're using the correct origin
+        const origin = window.location.origin; // This should be http://localhost:8000 or http://127.0.0.1:8000
+        redirectUrl = `${origin}/index.html`;
+        
+        // Debug: log the redirect URL
+        console.log('OAuth redirect URL:', redirectUrl);
       }
+     
 
       const { data, error } = await window.supabaseClient.auth.signInWithOAuth({
         provider: provider,
