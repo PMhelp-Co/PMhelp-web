@@ -10,95 +10,115 @@ const AuthState = {
   isAuthenticated: false,
   listeners: [],
 
-  // =====================================================
-  // Initialize Auth State
-  // =====================================================
-  async init() {
-    // Wait for Auth module to be available
-    if (!window.Auth) {
-      console.warn('Auth module not loaded, retrying...');
-      setTimeout(() => this.init(), 100);
+  
+// =====================================================
+// Initialize Auth State
+// =====================================================
+async init(retryCount = 0) {
+  const maxRetries = 100; // Increase to 10 seconds (100 * 100ms)
+  
+  // Wait for Auth module to be available AND initialized
+  if (!window.Auth || typeof window.Auth.init !== 'function') {
+    if (retryCount < maxRetries) {
+      // Silently retry (don't log warnings)
+      setTimeout(() => this.init(retryCount + 1), 100);
+      return;
+    } else {
+      console.error('Auth module failed to load after maximum retries');
       return;
     }
+  }
 
-    // Check current auth state
-    await this.checkAuthState();
+  // Check current auth state
+  await this.checkAuthState();
 
-    // Listen to auth state changes
-    window.Auth.onAuthStateChange((event, session) => {
-      this.handleAuthStateChange(event, session);
-    });
+  // Listen to auth state changes
+  window.Auth.onAuthStateChange((event, session) => {
+    this.handleAuthStateChange(event, session);
+  });
 
-    // Also listen to custom event
-    window.addEventListener('auth-state-changed', (e) => {
-      this.handleAuthStateChange(e.detail.event, e.detail.session);
-    });
-  },
+  // Also listen to custom event
+  window.addEventListener('auth-state-changed', (e) => {
+    this.handleAuthStateChange(e.detail.event, e.detail.session);
+  });
+},
 
-  // =====================================================
-  // Check Current Auth State
-  // =====================================================
-  async checkAuthState() {
-    try {
-      const sessionResult = await window.Auth.getSession();
-      const userResult = await window.Auth.getCurrentUser();
-
+  
+// =====================================================
+// Check Current Auth State
+// =====================================================
+async checkAuthState() {
+  try {
+    const sessionResult = await window.Auth.getSession();
+    
+    // Only get user if we have a valid session
+    if (sessionResult.success && sessionResult.session) {
       this.currentSession = sessionResult.session;
-      this.currentUser = userResult.user;
-      this.isAuthenticated = sessionResult.success && sessionResult.session !== null;
-
-      // Notify listeners
-      this.notifyListeners();
-
-      return {
-        isAuthenticated: this.isAuthenticated,
-        user: this.currentUser,
-        session: this.currentSession
-      };
-    } catch (error) {
-      console.error('Error checking auth state:', error);
-      this.isAuthenticated = false;
-      this.currentUser = null;
-      this.currentSession = null;
-      this.notifyListeners();
-      return {
-        isAuthenticated: false,
-        user: null,
-        session: null
-      };
-    }
-  },
-
-  // =====================================================
-  // Handle Auth State Change
-  // =====================================================
-  async handleAuthStateChange(event, session) {
-    console.log('Auth state change event:', event);
-
-    if (session) {
-      this.currentSession = session;
-      const userResult = await window.Auth.getCurrentUser();
-      this.currentUser = userResult.user;
+      this.currentUser = sessionResult.session.user; // Get user from session
       this.isAuthenticated = true;
     } else {
+      // No session - user is not authenticated
       this.currentSession = null;
       this.currentUser = null;
       this.isAuthenticated = false;
     }
 
-    // Notify all listeners
+    // Notify listeners
     this.notifyListeners();
 
-    // Dispatch custom event
-    window.dispatchEvent(new CustomEvent('auth-state-updated', {
-      detail: {
-        isAuthenticated: this.isAuthenticated,
-        user: this.currentUser,
-        session: this.currentSession,
-        event: event
-      }
-    }));
-  },
+    return {
+      isAuthenticated: this.isAuthenticated,
+      user: this.currentUser,
+      session: this.currentSession
+    };
+  } catch (error) {
+    // Suppress expected errors
+    if (error.status !== 401 && !error.message.includes('Bearer token')) {
+      console.error('Error checking auth state:', error);
+    }
+    this.isAuthenticated = false;
+    this.currentUser = null;
+    this.currentSession = null;
+    this.notifyListeners();
+    return {
+      isAuthenticated: false,
+      user: null,
+      session: null
+    };
+  }
+},
+
+// =====================================================
+// Handle Auth State Change
+// =====================================================
+async handleAuthStateChange(event, session) {
+  console.log('Auth state change event:', event);
+
+  if (session) {
+    this.currentSession = session;
+    // Only get user if we have a session
+    const userResult = await window.Auth.getCurrentUser();
+    this.currentUser = userResult.user;
+    this.isAuthenticated = true;
+  } else {
+    this.currentSession = null;
+    this.currentUser = null;
+    this.isAuthenticated = false;
+  }
+
+  // Notify all listeners
+  this.notifyListeners();
+
+  // Dispatch custom event
+  window.dispatchEvent(new CustomEvent('auth-state-updated', {
+    detail: {
+      isAuthenticated: this.isAuthenticated,
+      user: this.currentUser,
+      session: this.currentSession,
+      event: event
+    }
+  }));
+},
 
   // =====================================================
   // Get Current User

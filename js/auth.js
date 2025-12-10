@@ -207,59 +207,81 @@ const Auth = {
     }
   },
 
-  // =====================================================
-  // Get Current User
-  // =====================================================
-  async getCurrentUser() {
-    try {
-      if (!window.supabaseClient) {
-        throw new Error('Supabase client not initialized');
-      }
-
-      const { data: { user }, error } = await window.supabaseClient.auth.getUser();
-
-      if (error) throw error;
-
-      return {
-        success: true,
-        user: user
-      };
-    } catch (error) {
-      console.error('Get user error:', error);
-      return {
-        success: false,
-        error: error.message,
-        user: null
-      };
+// =====================================================
+// Get Current User
+// =====================================================
+async getCurrentUser() {
+  try {
+    if (!window.supabaseClient) {
+      throw new Error('Supabase client not initialized');
     }
-  },
 
-  // =====================================================
-  // Get Current Session
-  // =====================================================
-  async getSession() {
-    try {
-      if (!window.supabaseClient) {
-        throw new Error('Supabase client not initialized');
+    const { data: { user }, error } = await window.supabaseClient.auth.getUser();
+
+    if (error) {
+      // Don't log 401 errors - they're expected when user is not logged in
+      if (error.status !== 401 && error.message !== 'Invalid API key') {
+        console.error('Get user error:', error);
       }
+      throw error;
+    }
 
-      const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+    return {
+      success: true,
+      user: user
+    };
+  } catch (error) {
+    // Only log non-401 errors
+    if (error.status !== 401 && error.message !== 'Invalid API key' && !error.message.includes('Bearer token')) {
+      console.error('Get user error:', error);
+    }
+    return {
+      success: false,
+      error: error.message,
+      user: null
+    };
+  }
+},
 
-      if (error) throw error;
+// =====================================================
+// Get Current Session
+// =====================================================
+async getSession() {
+  try {
+    if (!window.supabaseClient) {
+      throw new Error('Supabase client not initialized');
+    }
 
-      return {
-        success: true,
-        session: session
-      };
-    } catch (error) {
-      console.error('Get session error:', error);
+    const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+
+    if (error) {
+      // Don't log 401 errors - they're expected when user is not logged in
+      if (error.status !== 401 && !error.message.includes('Bearer token')) {
+        console.error('Get session error:', error);
+      }
       return {
         success: false,
         error: error.message,
         session: null
       };
     }
-  },
+
+    return {
+      success: true,
+      session: session
+    };
+  } catch (error) {
+    // Suppress 401 errors - they're expected when not logged in
+    if (error.status !== 401 && !error.message.includes('Bearer token')) {
+      console.error('Get session error:', error);
+    }
+    return {
+      success: false,
+      error: error.message,
+      session: null
+    };
+  }
+},
 
   // =====================================================
   // Check if User is Authenticated
