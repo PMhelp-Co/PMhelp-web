@@ -9,70 +9,89 @@ const HeaderAuth = {
   userMenu: null,
   initialized: false,
 
+ // =====================================================
+// Initialize Header Auth
+// =====================================================
+init() {
+  // Prevent duplicate initialization
+  if (this.initialized) {
+    return;
+  }
+  
+  // Find header right column (where auth buttons go)
+  this.headerRightCol = document.querySelector('.brix---header-right-col');
+  
+  if (!this.headerRightCol) {
+    console.warn('Header right column not found');
+    return;
+  }
+
+  // Wait for AuthState to be ready
+  if (!window.AuthState) {
+    setTimeout(() => this.init(), 100);
+    return;
+  }
+
+  // Initial update
+  this.updateHeader();
+
+  // Listen to auth state changes (only once)
+  window.AuthState.addListener((state) => {
+    this.updateHeader(state);
+  });
+
+  // Also listen to custom event (only once)
+  window.addEventListener('auth-state-updated', (e) => {
+    this.updateHeader(e.detail);
+  });
+
+  this.initialized = true;
+},
+
+ // =====================================================
+// Update Header Based on Auth State
+// =====================================================
+updateHeader(state = null) {
+  if (!this.headerRightCol) return;
+  
+  // Prevent rapid successive updates
+  if (this._updating) {
+    return;
+  }
+  this._updating = true;
+  
+  // Get current auth state
+  const isAuthenticated = state?.isAuthenticated ?? window.AuthState?.getIsAuthenticated() ?? false;
+  const user = state?.user ?? window.AuthState?.getCurrentUser();
+
+  // Clear existing auth UI (all instances)
+  this.clearAuthUI();
+
+  if (isAuthenticated && user) {
+    this.showAuthenticatedUI(user);
+  } else {
+    this.showUnauthenticatedUI();
+  }
+  
+  // Reset updating flag after a short delay
+  setTimeout(() => {
+    this._updating = false;
+  }, 100);
+},
+
   // =====================================================
-  // Initialize Header Auth
-  // =====================================================
-  init() {
-    // Find header right column (where auth buttons go)
-    this.headerRightCol = document.querySelector('.brix---header-right-col');
-    
-    if (!this.headerRightCol) {
-      console.warn('Header right column not found');
-      return;
-    }
-
-    // Wait for AuthState to be ready
-    if (!window.AuthState) {
-      setTimeout(() => this.init(), 100);
-      return;
-    }
-
-    // Initial update
-    this.updateHeader();
-
-    // Listen to auth state changes
-    window.AuthState.addListener((state) => {
-      this.updateHeader(state);
-    });
-
-    // Also listen to custom event
-    window.addEventListener('auth-state-updated', (e) => {
-      this.updateHeader(e.detail);
-    });
-
-    this.initialized = true;
-  },
-
-  // =====================================================
-  // Update Header Based on Auth State
-  // =====================================================
-  updateHeader(state = null) {
-    if (!this.headerRightCol) return;
-
-    // Get current auth state
-    const isAuthenticated = state?.isAuthenticated ?? window.AuthState?.getIsAuthenticated() ?? false;
-    const user = state?.user ?? window.AuthState?.getCurrentUser();
-
-    // Clear existing auth UI
-    this.clearAuthUI();
-
-    if (isAuthenticated && user) {
-      this.showAuthenticatedUI(user);
-    } else {
-      this.showUnauthenticatedUI();
-    }
-  },
-
-  // =====================================================
-  // Clear Auth UI
-  // =====================================================
-  clearAuthUI() {
-    // Remove existing auth buttons/menus
-    const existingAuth = this.headerRightCol.querySelector('.header-auth-ui');
-    if (existingAuth) {
-      existingAuth.remove();
-    }
-  },
+// Clear Auth UI
+// =====================================================
+clearAuthUI() {
+  // Remove ALL existing auth buttons/menus (not just the first one)
+  const existingAuthElements = this.headerRightCol.querySelectorAll('.header-auth-ui');
+  existingAuthElements.forEach(element => {
+    element.remove();
+  });
+  
+  // Also clear the userMenu reference
+  this.userMenu = null;
+},
 
   // =====================================================
   // Show Unauthenticated UI (Sign In Button)
