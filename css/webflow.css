@@ -1682,7 +1682,8 @@ textarea.w-select {
 .w--nav-dropdown-list-open {
   position: static;
 }
-@media screen and (max-width: 991px) {
+
+@media screen and (max-width: 1051px) {
   .w-nav[data-collapse='medium'] .w-nav-menu {
     display: none;
   }
