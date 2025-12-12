@@ -32,17 +32,10 @@ init() {
     return;
   }
 
-  // Initial update
-  this.updateHeader();
-
   // Listen to auth state changes (only once)
+  // Note: addListener() immediately calls the callback with current state, so we don't need initial update
   window.AuthState.addListener((state) => {
     this.updateHeader(state);
-  });
-
-  // Also listen to custom event (only once)
-  window.addEventListener('auth-state-updated', (e) => {
-    this.updateHeader(e.detail);
   });
 
   this.initialized = true;
@@ -60,12 +53,18 @@ updateHeader(state = null) {
   }
   this._updating = true;
   
+  // Clear existing auth UI FIRST (all instances)
+  this.clearAuthUI();
+  
   // Get current auth state
   const isAuthenticated = state?.isAuthenticated ?? window.AuthState?.getIsAuthenticated() ?? false;
   const user = state?.user ?? window.AuthState?.getCurrentUser();
 
-  // Clear existing auth UI (all instances)
-  this.clearAuthUI();
+  // Double-check: if auth UI still exists, something went wrong - remove it
+  const remainingAuth = this.headerRightCol.querySelectorAll('.header-auth-ui');
+  if (remainingAuth.length > 0) {
+    remainingAuth.forEach(el => el.remove());
+  }
 
   if (isAuthenticated && user) {
     this.showAuthenticatedUI(user);
@@ -76,20 +75,28 @@ updateHeader(state = null) {
   // Reset updating flag after a short delay
   setTimeout(() => {
     this._updating = false;
-  }, 100);
+  }, 50);
 },
 
   // =====================================================
 // Clear Auth UI
 // =====================================================
 clearAuthUI() {
+  if (!this.headerRightCol) return;
+  
   // Remove ALL existing auth buttons/menus (not just the first one)
   const existingAuthElements = this.headerRightCol.querySelectorAll('.header-auth-ui');
   existingAuthElements.forEach(element => {
     element.remove();
   });
   
-  // Also clear the userMenu reference
+  // Also remove any user-menu-container that might be orphaned
+  const orphanedMenus = this.headerRightCol.querySelectorAll('.user-menu-container');
+  orphanedMenus.forEach(element => {
+    element.remove();
+  });
+  
+  // Clear the userMenu reference
   this.userMenu = null;
 },
 
@@ -97,6 +104,12 @@ clearAuthUI() {
   // Show Unauthenticated UI (Sign In Button)
   // =====================================================
   showUnauthenticatedUI() {
+    // Double-check: ensure no duplicate auth UI exists
+    const existingAuth = this.headerRightCol.querySelectorAll('.header-auth-ui');
+    if (existingAuth.length > 0) {
+      existingAuth.forEach(el => el.remove());
+    }
+    
     const authContainer = document.createElement('div');
     authContainer.className = 'header-auth-ui';
     
@@ -120,6 +133,12 @@ clearAuthUI() {
   // Show Authenticated UI (User Menu)
   // =====================================================
   async showAuthenticatedUI(user) {
+    // Double-check: ensure no duplicate auth UI exists
+    const existingAuth = this.headerRightCol.querySelectorAll('.header-auth-ui');
+    if (existingAuth.length > 0) {
+      existingAuth.forEach(el => el.remove());
+    }
+    
     const authContainer = document.createElement('div');
     authContainer.className = 'header-auth-ui';
     
