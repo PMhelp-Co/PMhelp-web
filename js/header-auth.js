@@ -93,7 +93,7 @@ const HeaderAuth = {
       this.documentClickHandler = null;
     }
     
-    // Remove ALL existing auth buttons/menus
+    // Remove ALL existing auth buttons/menus (not just the first one)
     const existingAuthElements = this.headerRightCol.querySelectorAll('.header-auth-ui');
     existingAuthElements.forEach(element => {
       element.remove();
@@ -105,6 +105,30 @@ const HeaderAuth = {
       element.remove();
     });
     
+    // Reset the visibility of header auth buttons (they'll be shown/hidden by updateHeader)
+    const authButtons = document.querySelectorAll('.header-auth-buttons');
+    authButtons.forEach(button => {
+      button.style.display = '';
+    });
+    
+    // Remove mobile menu auth elements
+    const mobileMenu = document.querySelector('.brix---header-menu-wrapper.w-nav-menu');
+    if (mobileMenu) {
+      const mobileSignIn = mobileMenu.querySelector('.header-auth-mobile-signin');
+      if (mobileSignIn) {
+        mobileSignIn.remove();
+      }
+      const mobileDivider = mobileMenu.querySelector('.header-auth-mobile-divider');
+      if (mobileDivider) {
+        mobileDivider.remove();
+      }
+      // Also remove mobile user menu if it exists
+      const mobileUserMenu = mobileMenu.querySelector('.header-auth-mobile-user');
+      if (mobileUserMenu) {
+        mobileUserMenu.remove();
+      }
+    }
+    
     // Clear the userMenu reference
     this.userMenu = null;
   },
@@ -113,29 +137,68 @@ const HeaderAuth = {
   // Show Unauthenticated UI (Sign In Button)
   // =====================================================
   showUnauthenticatedUI() {
-    const authContainer = document.createElement('div');
-    authContainer.className = 'header-auth-ui';
+
+    const authButtons = document.querySelectorAll('.header-auth-buttons');
+    authButtons.forEach(button => {
+      button.style.display = '';
+    });
+  
+  
+    // Create desktop version (hidden on mobile)
+    // const authContainer = document.createElement('div');
+    // authContainer.className = 'header-auth-ui brix---btn-header-hidden-on-mbl';
     
-    const signInBtn = document.createElement('a');
-    signInBtn.href = 'signin.html';
-    signInBtn.className = 'brix---btn-primary-small w-button';
-    signInBtn.textContent = 'Sign In';
+    // const signInBtn = document.createElement('a');
+    // signInBtn.href = 'signin.html';
+    // signInBtn.className = 'brix---btn-primary-small w-button';
+    // signInBtn.textContent = 'Sign In';
     
-    authContainer.appendChild(signInBtn);
+    // authContainer.appendChild(signInBtn);
     
-    // Insert before hamburger menu or at the end
-    const hamburgerMenu = this.headerRightCol.querySelector('.brix---hamburger-menu-wrapper');
-    if (hamburgerMenu) {
-      this.headerRightCol.insertBefore(authContainer, hamburgerMenu);
-    } else {
-      this.headerRightCol.appendChild(authContainer);
-    }
+    // // Insert before hamburger menu or at the end
+    // const hamburgerMenu = this.headerRightCol.querySelector('.brix---hamburger-menu-wrapper');
+    // if (hamburgerMenu) {
+    //   this.headerRightCol.insertBefore(authContainer, hamburgerMenu);
+    // } else {
+    //   this.headerRightCol.appendChild(authContainer);
+    // }
+
+    // // Create mobile version (in dropdown menu)
+    // const mobileMenu = document.querySelector('.brix---header-menu-wrapper.w-nav-menu');
+    // if (mobileMenu) {
+    //   // Check if mobile sign in link already exists
+    //   let mobileSignIn = mobileMenu.querySelector('.header-auth-mobile-signin');
+      
+    //   if (!mobileSignIn) {
+    //     // Create divider before sign in button
+    //     const divider = document.createElement('div');
+    //     divider.style.cssText = 'height: 1px; background: #e5e7eb; margin: 16px 0;';
+    //     divider.className = 'header-auth-mobile-divider';
+        
+    //     // Create mobile sign in link
+    //     mobileSignIn = document.createElement('a');
+    //     mobileSignIn.href = 'signin.html';
+    //     mobileSignIn.className = 'text-block-3 w-nav-link header-auth-mobile-signin';
+    //     mobileSignIn.textContent = 'Sign In';
+    //     mobileSignIn.style.cssText = 'padding: 12px 20px; font-weight: 500;';
+        
+    //     // Insert divider and sign in link at the end of mobile menu
+    //     mobileMenu.appendChild(divider);
+    //     mobileMenu.appendChild(mobileSignIn);
+    //   }
+    // }
   },
 
   // =====================================================
   // Show Authenticated UI (User Menu)
   // =====================================================
   async showAuthenticatedUI(user) {
+    const authButtons = document.querySelectorAll('.header-auth-buttons');
+    authButtons.forEach(button => {
+      button.style.display = 'none';
+    });
+
+    // ... rest of existing showAuthenticatedUI code ...
     const authContainer = document.createElement('div');
     authContainer.className = 'header-auth-ui';
     
