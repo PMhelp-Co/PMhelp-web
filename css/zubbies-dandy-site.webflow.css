@@ -10212,6 +10212,14 @@ li {
   }
 }
 
+
+
+@media screen and (max-width: 1051px) {
+  .brix---btn-header-hidden-on-mbl {
+    display: none;
+  }
+}
+
 @media screen and (max-width: 991px) {
   .hero-section {
     padding-left: 0;
@@ -11462,9 +11470,6 @@ li {
     padding: 20px 32px;
   }
 
-  .brix---btn-header-hidden-on-mbl {
-    display: none;
-  }
 
   .brix---header-nav-list-item-show-in-mbl {
     display: block;
