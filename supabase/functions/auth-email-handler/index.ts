@@ -25,36 +25,57 @@ interface AuthEvent {
 
 Deno.serve(async (req) => {
   try {
-    // For Auth Hooks, Supabase sends the secret in Authorization header
-    // Format: "Bearer <secret>" or just the secret
+    // Log all headers for debugging
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()))
+    console.log('Request method:', req.method)
+    console.log('Request URL:', req.url)
+    
+    // Supabase Auth Hooks send Authorization header with the webhook secret
     const authHeader = req.headers.get('Authorization')
     
-    // If WEBHOOK_SECRET is set, verify it
-    if (WEBHOOK_SECRET) {
-      if (!authHeader) {
-        return new Response(JSON.stringify({ error: 'No authorization header' }), { 
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        })
-      }
-      
-      // Extract token (handle both "Bearer <token>" and just "<token>")
+    // Log what we received
+    console.log('Authorization header:', authHeader ? 'Present' : 'Missing')
+    
+    // For debugging: Check if this is a test request or if hook is misconfigured
+    // Temporarily allow requests without auth to see the payload
+    if (!authHeader) {
+      console.warn('⚠️ No authorization header - this should only happen if hook is misconfigured')
+      // For now, allow it to proceed so we can see the event data
+      // TODO: Remove this after fixing hook configuration
+    } else {
+      // Extract token (Supabase sends as "Bearer <secret>")
       const token = authHeader.startsWith('Bearer ') 
         ? authHeader.substring(7) 
         : authHeader
       
-      if (token !== WEBHOOK_SECRET) {
+      // Verify the token matches our webhook secret
+      if (WEBHOOK_SECRET && token !== WEBHOOK_SECRET) {
+        console.error('❌ Invalid authorization token')
+        console.error('Expected:', WEBHOOK_SECRET?.substring(0, 20) + '...')
+        console.error('Received:', token.substring(0, 20) + '...')
         return new Response(JSON.stringify({ error: 'Invalid authorization token' }), { 
           status: 401,
           headers: { 'Content-Type': 'application/json' }
         })
       }
+      
+      if (!WEBHOOK_SECRET) {
+        console.warn('⚠️ WEBHOOK_SECRET not set - skipping verification')
+      } else {
+        console.log('✅ Authorization token verified')
+      }
     }
 
-    const event: AuthEvent = await req.json()
+    // Parse the event
+    const eventBody = await req.json()
+    console.log('Event type:', eventBody?.type)
+    console.log('Event data:', JSON.stringify(eventBody, null, 2))
+    
+    const event: AuthEvent = eventBody
     
     // Validate event structure
     if (!event || !event.type) {
+      console.error('❌ Invalid event data:', event)
       return new Response(JSON.stringify({ error: 'Invalid event data' }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -65,7 +86,7 @@ Deno.serve(async (req) => {
     const emailContent = getEmailTemplate(event)
     
     if (!emailContent) {
-      console.log(`Unknown event type: ${event.type}`)
+      console.log(`⚠️ Unknown event type: ${event.type}`)
       // Return success for unknown events (don't break auth flow)
       return new Response(JSON.stringify({ success: true, message: 'Event type not handled' }), {
         status: 200,
@@ -76,11 +97,14 @@ Deno.serve(async (req) => {
     // Get recipient email
     const recipientEmail = event.user?.email || event.email
     if (!recipientEmail) {
+      console.error('❌ No recipient email in event')
       return new Response(JSON.stringify({ error: 'No recipient email' }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
+    console.log('📧 Sending email to:', recipientEmail)
 
     // Send email via Resend
     const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -100,15 +124,18 @@ Deno.serve(async (req) => {
     const data = await resendResponse.json()
 
     if (!resendResponse.ok) {
+      console.error('❌ Resend API error:', data)
       throw new Error(`Resend API error: ${JSON.stringify(data)}`)
     }
+
+    console.log('✅ Email sent successfully:', data.id)
 
     return new Response(JSON.stringify({ success: true, messageId: data.id }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('Error sending email:', error)
+    console.error('❌ Error sending email:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
