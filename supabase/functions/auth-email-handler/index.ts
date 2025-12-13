@@ -24,9 +24,17 @@ interface AuthEvent {
 }
 
 Deno.serve(async (req) => {
+  // Log immediately - before any checks
+  console.log('=== AUTH EMAIL HANDLER CALLED ===')
+  console.log('Timestamp:', new Date().toISOString())
+  
   try {
     // Log all headers for debugging
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()))
+    const allHeaders: Record<string, string> = {}
+    req.headers.forEach((value, key) => {
+      allHeaders[key] = value
+    })
+    console.log('All request headers:', JSON.stringify(allHeaders, null, 2))
     console.log('Request method:', req.method)
     console.log('Request URL:', req.url)
     
@@ -34,26 +42,37 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
     
     // Log what we received
-    console.log('Authorization header:', authHeader ? 'Present' : 'Missing')
+    console.log('Authorization header present:', authHeader ? 'YES' : 'NO')
+    if (authHeader) {
+      console.log('Authorization header value:', authHeader.substring(0, 30) + '...')
+    }
     
-    // For debugging: Check if this is a test request or if hook is misconfigured
-    // Temporarily allow requests without auth to see the payload
+    // TEMPORARILY: Allow requests without auth for debugging
+    // This will help us see what Supabase is actually sending
     if (!authHeader) {
-      console.warn('⚠️ No authorization header - this should only happen if hook is misconfigured')
-      // For now, allow it to proceed so we can see the event data
-      // TODO: Remove this after fixing hook configuration
+      console.warn('⚠️ WARNING: No authorization header received')
+      console.warn('⚠️ This suggests the hook is not properly configured')
+      console.warn('⚠️ Proceeding anyway to see the event data...')
     } else {
       // Extract token (Supabase sends as "Bearer <secret>")
       const token = authHeader.startsWith('Bearer ') 
         ? authHeader.substring(7) 
         : authHeader
       
+      console.log('WEBHOOK_SECRET set:', WEBHOOK_SECRET ? 'YES' : 'NO')
+      
       // Verify the token matches our webhook secret
       if (WEBHOOK_SECRET && token !== WEBHOOK_SECRET) {
         console.error('❌ Invalid authorization token')
-        console.error('Expected:', WEBHOOK_SECRET?.substring(0, 20) + '...')
-        console.error('Received:', token.substring(0, 20) + '...')
-        return new Response(JSON.stringify({ error: 'Invalid authorization token' }), { 
+        console.error('Expected (first 30 chars):', WEBHOOK_SECRET.substring(0, 30))
+        console.error('Received (first 30 chars):', token.substring(0, 30))
+        return new Response(JSON.stringify({ 
+          error: 'Invalid authorization token',
+          debug: {
+            expectedPrefix: WEBHOOK_SECRET.substring(0, 20),
+            receivedPrefix: token.substring(0, 20)
+          }
+        }), { 
           status: 401,
           headers: { 'Content-Type': 'application/json' }
         })
@@ -62,25 +81,49 @@ Deno.serve(async (req) => {
       if (!WEBHOOK_SECRET) {
         console.warn('⚠️ WEBHOOK_SECRET not set - skipping verification')
       } else {
-        console.log('✅ Authorization token verified')
+        console.log('✅ Authorization token verified successfully')
       }
     }
 
-    // Parse the event
-    const eventBody = await req.json()
+    // Parse the event body
+    console.log('Attempting to parse request body...')
+    let eventBody: any
+    try {
+      const bodyText = await req.text()
+      console.log('Request body length:', bodyText.length)
+      console.log('Request body (first 500 chars):', bodyText.substring(0, 500))
+      eventBody = JSON.parse(bodyText)
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError)
+      return new Response(JSON.stringify({ 
+        error: 'Invalid JSON in request body',
+        details: parseError.message 
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+    
     console.log('Event type:', eventBody?.type)
-    console.log('Event data:', JSON.stringify(eventBody, null, 2))
+    console.log('Event keys:', Object.keys(eventBody || {}))
+    console.log('Full event data:', JSON.stringify(eventBody, null, 2))
     
     const event: AuthEvent = eventBody
     
     // Validate event structure
     if (!event || !event.type) {
-      console.error('❌ Invalid event data:', event)
-      return new Response(JSON.stringify({ error: 'Invalid event data' }), { 
+      console.error('❌ Invalid event data - missing type')
+      console.error('Event received:', event)
+      return new Response(JSON.stringify({ 
+        error: 'Invalid event data',
+        received: event 
+      }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
+    
+    console.log('✅ Event validated, type:', event.type)
     
     // Get email template based on event type
     const emailContent = getEmailTemplate(event)
@@ -88,7 +131,11 @@ Deno.serve(async (req) => {
     if (!emailContent) {
       console.log(`⚠️ Unknown event type: ${event.type}`)
       // Return success for unknown events (don't break auth flow)
-      return new Response(JSON.stringify({ success: true, message: 'Event type not handled' }), {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: 'Event type not handled',
+        eventType: event.type
+      }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -98,15 +145,33 @@ Deno.serve(async (req) => {
     const recipientEmail = event.user?.email || event.email
     if (!recipientEmail) {
       console.error('❌ No recipient email in event')
-      return new Response(JSON.stringify({ error: 'No recipient email' }), { 
+      console.error('Event user:', event.user)
+      console.error('Event email field:', event.email)
+      return new Response(JSON.stringify({ 
+        error: 'No recipient email',
+        event: event 
+      }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    console.log('📧 Sending email to:', recipientEmail)
+    console.log('📧 Preparing to send email to:', recipientEmail)
+    console.log('Email subject:', emailContent.subject)
+
+    // Check if Resend API key is set
+    if (!RESEND_API_KEY) {
+      console.error('❌ RESEND_API_KEY not set')
+      return new Response(JSON.stringify({ 
+        error: 'RESEND_API_KEY not configured' 
+      }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
 
     // Send email via Resend
+    console.log('Sending email via Resend API...')
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -122,21 +187,33 @@ Deno.serve(async (req) => {
     })
 
     const data = await resendResponse.json()
+    console.log('Resend API response status:', resendResponse.status)
+    console.log('Resend API response:', JSON.stringify(data, null, 2))
 
     if (!resendResponse.ok) {
       console.error('❌ Resend API error:', data)
       throw new Error(`Resend API error: ${JSON.stringify(data)}`)
     }
 
-    console.log('✅ Email sent successfully:', data.id)
+    console.log('✅ Email sent successfully! Message ID:', data.id)
+    console.log('=== FUNCTION COMPLETED SUCCESSFULLY ===')
 
-    return new Response(JSON.stringify({ success: true, messageId: data.id }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      messageId: data.id 
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('❌ Error sending email:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('❌ UNEXPECTED ERROR:', error)
+    console.error('Error stack:', error.stack)
+    console.error('Error message:', error.message)
+    console.error('=== FUNCTION FAILED ===')
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      stack: error.stack 
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     })
