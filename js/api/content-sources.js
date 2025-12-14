@@ -17,6 +17,9 @@ async function getContentSourcesByModule(moduleSlug) {
       .select('*');
     
     if (error) throw error;
+
+    console.log('All content sources:', data);
+    console.log('Looking for module:', moduleSlug);
     
     // Filter results where moduleSlug is in the module_slug field
     // module_slug format: 'slug1; slug2; slug3' or 'slug1' or 'slug1; slug2'
@@ -31,6 +34,7 @@ async function getContentSourcesByModule(moduleSlug) {
     console.error('Error fetching content sources:', error);
     throw error;
   }
+  
 }
 
 /**

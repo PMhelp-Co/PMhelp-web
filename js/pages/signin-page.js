@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!result.success) {
       showMessage(result.error || 'Failed to sign in with Google.', true);
     }
-    // OAuth will redirect, so no need to handle success
+      // OAuth will redirect, so no need to handle success
   });
 });
 
