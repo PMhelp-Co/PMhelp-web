@@ -22,10 +22,17 @@ async function getLessonBySlug(courseSlug, lessonSlug) {
       .eq('course_id', course.id)
       .eq('slug', lessonSlug)
       .eq('is_published', true)
-      .single();
+      .order('order_index', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(1);
     
     if (error) throw error;
-    return data;
+    if (!data || data.length === 0) {
+      throw new Error('Lesson not found');
+    }
+    
+    // Return the first result (in case of duplicates, prefer the one with lowest order_index)
+    return data[0];
   } catch (error) {
     console.error('Error fetching lesson by slug:', error);
     throw error;

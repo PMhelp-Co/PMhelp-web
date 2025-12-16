@@ -557,13 +557,15 @@ async function getCourseLessons(courseId) {
 
 ### Step 4.5: Fix `detail_course-lesson.html` (Lesson Page)
 **Tasks:**
-- [ ] Read course and lesson slugs from URL
-- [ ] Fetch lesson data from Supabase
-- [ ] Display lesson title, video, content
-- [ ] Show course curriculum sidebar
-- [ ] Implement "Next Lesson" / "Previous Lesson" navigation
-- [ ] Track lesson completion (save to user_progress)
-- [ ] Show progress indicator
+- [x] Read course and lesson slugs from URL
+- [x] Fetch lesson data from Supabase
+- [x] Display lesson title, video, content
+- [x] Show course curriculum sidebar
+- [x] Implement "Next Lesson" / "Previous Lesson" navigation (with looping)
+- [x] Track lesson completion (save to user_progress)
+- [x] Show progress indicator
+- [x] Render content sources
+- [x] Implement feedback form
 
 ### Step 4.6: Fix `blog.html` (Blog Listing Page)
 **Tasks:**

@@ -38,6 +38,7 @@ function renderCourseTitle() {
  * Render course about section
  */
 function renderCourseAbout() {
+  console.log('Rendering course about:', currentCourse);
   const aboutElement = document.querySelector('.about .w-richtext');
   if (aboutElement && currentCourse) {
     aboutElement.innerHTML = currentCourse.about || currentCourse.description || '';
@@ -48,10 +49,13 @@ function renderCourseAbout() {
  * Render learning objectives
  */
 async function renderLearningObjectives() {
+  console.log('Rendering learning objectives:', currentCourse);
+  
   if (!currentCourse) return;
   
   try {
     const objectives = await window.coursesAPI.getCourseLearningObjectives(currentCourse.id);
+    console.log('obj  ', objectives);
     const container = document.querySelector('.what-you-learn .spacing-16');
     
     if (!container) return;
@@ -82,8 +86,10 @@ async function renderLessons() {
   
   try {
     const lessons = await window.coursesAPI.getCourseLessons(currentCourse.id);
+    console.log('lessons  ', lessons);
     const container = document.querySelector('.collection-list-9');
     
+
     if (!container) return;
     
     // Clear existing items
@@ -118,16 +124,46 @@ async function renderLessons() {
 }
 
 /**
+ * Get course thumbnail URL from Supabase Storage
+ * @param {string} courseSlug - Course slug
+ * @returns {string} - Storage URL
+ */
+function getCourseThumbnailUrl(courseSlug) {
+  console.log("course slug " + courseSlug);
+  console.log("course thumbnail url " + `https://igiemqicokpdyhunldtq.supabase.co/storage/v1/object/public/course-thumbnails/${courseSlug}.jpg`);
+  if (!courseSlug) return null;
+  return `https://igiemqicokpdyhunldtq.supabase.co/storage/v1/object/public/course-thumbnails/${courseSlug}.jpg`;
+}
+
+/**
  * Render course details sidebar
  */
 function renderCourseSidebar() {
   if (!currentCourse) return;
   
-  // Update course thumbnail
+  // Update course thumbnail from Supabase Storage
   const thumbnail = document.querySelector('.frame-1171276812 .image-9');
-  if (thumbnail && currentCourse.icon_url) {
-    thumbnail.src = currentCourse.icon_url;
-    thumbnail.alt = currentCourse.title;
+  if (thumbnail) {
+    const storageUrl = getCourseThumbnailUrl(currentCourse.slug);
+    
+    if (storageUrl) {
+
+      thumbnail.src = storageUrl;
+      thumbnail.alt = currentCourse.title;
+      
+      // Handle image load error (fallback to icon_url)
+      thumbnail.onerror = function() {
+        
+        if (currentCourse.icon_url) {
+          this.src = currentCourse.icon_url;
+        }
+        this.onerror = null; // Prevent infinite loop
+      };
+    } else if (currentCourse.icon_url) {
+      // Fallback to icon_url if slug is not available
+      thumbnail.src = currentCourse.icon_url;
+      thumbnail.alt = currentCourse.title;
+    }
   }
   
   // Update lesson count
@@ -206,37 +242,74 @@ async function renderContentSources() {
  */
 async function renderCourseNavigation() {
   if (!currentCourse) return;
-  
+
   try {
     const [previousCourse, nextCourse] = await Promise.all([
       window.coursesAPI.getPreviousCourse(currentCourse.slug),
       window.coursesAPI.getNextCourse(currentCourse.slug)
     ]);
-    
+
+    // Loop navigation: if no previous, get last course; if no next, get first course
+    const [loopedPrevious, loopedNext] = await Promise.all([
+      previousCourse ? Promise.resolve(previousCourse) : window.coursesAPI.getLastCourse(),
+      nextCourse ? Promise.resolve(nextCourse) : window.coursesAPI.getFirstCourse()
+    ]);
+
+    const placeholder =
+      'https://d3e54v103j8qbb.cloudfront.net/plugins/Basic/assets/placeholder.60f9b1840c.svg';
+
+    // -------------------------
     // Render previous course
-    const previousContainer = document.querySelector('.lesson .next-section-div:first-child .w-dyn-items');
-    if (previousContainer && previousCourse) {
+    // -------------------------
+    const previousContainer = document.querySelector(
+      '.lesson .next-section-div:first-child .w-dyn-items'
+    );
+
+    if (previousContainer && loopedPrevious) {
+      const prevThumbnail =
+        getCourseThumbnailUrl(loopedPrevious.slug) || placeholder;
+
       previousContainer.innerHTML = `
         <div role="listitem" class="collection-item-10 w-dyn-item">
-          <a href="detail_course.html?slug=${previousCourse.slug}" class="link-block-7 w-inline-block">
+          <a href="detail_course.html?slug=${loopedPrevious.slug}" class="link-block-7 w-inline-block">
             <img src="images/chevron-right.svg" loading="lazy" width="50" alt="" class="image-12">
-            <div class="font-20px module">${previousCourse.title}</div>
-            <img src="${previousCourse.icon_url || previousCourse.thumbnail_url || 'https://d3e54v103j8qbb.cloudfront.net/plugins/Basic/assets/placeholder.60f9b1840c.svg'}" loading="lazy" alt="${previousCourse.title}" class="next-lesson-image">
+            <div class="font-20px module">${loopedPrevious.title}</div>
+            <img
+              src="${prevThumbnail}"
+              loading="lazy"
+              alt="${loopedPrevious.title}"
+              class="next-lesson-image"
+              onerror="this.src='${placeholder}'"
+            >
           </a>
         </div>
       `;
     } else if (previousContainer) {
       previousContainer.innerHTML = '';
     }
-    
+
+    // -------------------------
     // Render next course
-    const nextContainer = document.querySelector('.lesson .next-section-div:last-child .w-dyn-items');
-    if (nextContainer && nextCourse) {
+    // -------------------------
+    const nextContainer = document.querySelector(
+      '.lesson .next-section-div:last-child .w-dyn-items'
+    );
+
+    if (nextContainer && loopedNext) {
+      const nextThumbnail =
+        getCourseThumbnailUrl(loopedNext.slug) || placeholder;
+
       nextContainer.innerHTML = `
         <div role="listitem" class="collection-item-10 w-dyn-item">
-          <a href="detail_course.html?slug=${nextCourse.slug}" class="link-block-7 w-inline-block">
-            <img src="${nextCourse.icon_url || nextCourse.thumbnail_url || 'https://d3e54v103j8qbb.cloudfront.net/plugins/Basic/assets/placeholder.60f9b1840c.svg'}" loading="lazy" alt="${nextCourse.title}" class="next-lesson-image">
-            <div class="font-20px module">${nextCourse.title}</div>
+          <a href="detail_course.html?slug=${loopedNext.slug}" class="link-block-7 w-inline-block">
+            <img
+              src="${nextThumbnail}"
+              loading="lazy"
+              alt="${loopedNext.title}"
+              class="next-lesson-image"
+              onerror="this.src='${placeholder}'"
+            >
+            <div class="font-20px module">${loopedNext.title}</div>
             <img src="images/chevron-right.svg" loading="lazy" width="50" alt="" class="image-12 next">
           </a>
         </div>
@@ -249,21 +322,42 @@ async function renderCourseNavigation() {
   }
 }
 
+
 /**
  * Initialize feedback form handler
  */
 function initializeFeedbackForm() {
   const form = document.getElementById('wf-form-Feedback');
   if (!form) return;
-  
+
+  // Find the success / error nodes that are siblings of the form (Webflow places them after the form)
+  const maybeSuccess = form.nextElementSibling;
+  const maybeError = maybeSuccess?.nextElementSibling;
+
+  const successMessage =
+    (maybeSuccess && maybeSuccess.classList.contains('w-form-done')) ?
+      maybeSuccess :
+      document.querySelector('.w-form-done');
+
+  const errorMessage =
+    (maybeError && maybeError.classList.contains('w-form-fail')) ?
+      maybeError :
+      document.querySelector('.w-form-fail');
+
+  // optional "lock" to ignore external changes while we're submitting
+
+  // Attach the listener in capture phase so it runs before other non-capture listeners
   form.addEventListener('submit', async (e) => {
+    // run as early as possible
     e.preventDefault();
-    
+    // stop other listeners from running on this event (prevents Webflow's default toggles)
+    e.stopImmediatePropagation();
+
     if (!currentCourse) {
       alert('Course information not loaded. Please refresh the page.');
       return;
     }
-    
+
     // Get form data
     const ratingInput = form.querySelector('input[name="Star-Rating-1"]:checked');
     const textareas = form.querySelectorAll('textarea[name="field-2"]');
@@ -271,40 +365,50 @@ function initializeFeedbackForm() {
     const improvementFeedback = textareas[1]?.value || '';
     const name = form.querySelector('input[name="Name-4"]')?.value || '';
     const email = form.querySelector('input[name="email-2"]')?.value || '';
-    
+
     if (!ratingInput || !name || !email) {
       alert('Please fill in all required fields.');
       return;
     }
-    
-    const rating = parseInt(ratingInput.value);
-    
+
+    const rating = parseInt(ratingInput.value, 10);
+
+    // defensive: hide both messages before submit
+    if (successMessage) successMessage.style.display = 'none';
+    if (errorMessage) errorMessage.style.display = 'none';
+
     try {
       await window.feedbackAPI.submitCourseFeedback({
         course_id: currentCourse.id,
-        rating: rating,
+        rating,
         valuable_feedback: valuableFeedback,
         improvement_feedback: improvementFeedback,
-        name: name,
-        email: email
+        name,
+        email
       });
-      
-      // Show success message
-      form.querySelector('.w-form-done').style.display = 'block';
-      form.querySelector('.w-form-fail').style.display = 'none';
+
+      // on success
+      if (successMessage) successMessage.style.display = 'block';
+      if (errorMessage) errorMessage.style.display = 'none';
       form.reset();
-      
-      // Hide success message after 5 seconds
+
+      // hide after 5s (only if still our submission)
       setTimeout(() => {
-        form.querySelector('.w-form-done').style.display = 'none';
+        // optional guard: only hide if we are not in another submit cycle
+      
+        if (successMessage) {successMessage.style.display = 'none';}
       }, 5000);
+
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      form.querySelector('.w-form-fail').style.display = 'block';
-      form.querySelector('.w-form-done').style.display = 'none';
+      if (errorMessage) errorMessage.style.display = 'block';
+      if (successMessage) successMessage.style.display = 'none';
+    } finally {
+      // release lock after everything completed
     }
-  });
+  }, { capture: true }); // <--- capture: true is important
 }
+
 
 /**
  * Main initialization function

@@ -77,10 +77,11 @@ async function getCourseLessons(courseId) {
   try {
     const { data, error } = await window.supabase
       .from('lessons')
-      .select('*')
+      .select('*') // select only what you need
       .eq('course_id', courseId)
-      .order('order_index', { ascending: true });
-    
+      .eq('is_published', true)
+      .order('order_index', { ascending: true, nullsFirst: true }); // ascending within module
+
     if (error) throw error;
     return data || [];
   } catch (error) {
@@ -166,6 +167,50 @@ async function getNextCourse(currentSlug) {
   }
 }
 
+/**
+ * Get first course (lowest order_index)
+ * @returns {Promise<Object|null>} - First course or null
+ */
+async function getFirstCourse() {
+  try {
+    const { data, error } = await window.supabase
+      .from('courses')
+      .select('*')
+      .eq('is_published', true)
+      .order('order_index', { ascending: true })
+      .limit(1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
+  } catch (error) {
+    console.error('Error fetching first course:', error);
+    return null;
+  }
+}
+
+/**
+ * Get last course (highest order_index)
+ * @returns {Promise<Object|null>} - Last course or null
+ */
+async function getLastCourse() {
+  try {
+    const { data, error } = await window.supabase
+      .from('courses')
+      .select('*')
+      .eq('is_published', true)
+      .order('order_index', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
+  } catch (error) {
+    console.error('Error fetching last course:', error);
+    return null;
+  }
+}
+
 // Export functions to window for global access
 window.coursesAPI = {
   getAllCourses,
@@ -174,5 +219,7 @@ window.coursesAPI = {
   getCourseLessons,
   getCourseLearningObjectives,
   getPreviousCourse,
-  getNextCourse
+  getNextCourse,
+  getFirstCourse,  // Add this
+  getLastCourse   // Add this
 };

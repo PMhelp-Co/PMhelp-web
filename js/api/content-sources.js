@@ -15,6 +15,8 @@ async function getContentSourcesByModule(moduleSlug) {
     const { data, error } = await window.supabase
       .from('content_sources')
       .select('*');
+
+    
     
     if (error) throw error;
 
@@ -25,7 +27,12 @@ async function getContentSourcesByModule(moduleSlug) {
     // module_slug format: 'slug1; slug2; slug3' or 'slug1' or 'slug1; slug2'
     const filtered = (data || []).filter(source => {
       if (!source.module_slug) return false;
+      console.log(source.module_slug);
+
+      
       const slugs = source.module_slug.split(';').map(s => s.trim());
+      console.log(slugs);
+
       return slugs.includes(moduleSlug);
     });
     
