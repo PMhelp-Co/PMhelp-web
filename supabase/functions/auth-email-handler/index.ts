@@ -1,261 +1,275 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
-
 /// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
 
-// Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
+import { Resend } from "npm:resend";
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL') || 'PMHelp <noreply@pmhelp.co>'
-const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET') // Set this in Supabase secrets
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "PMHelp <noreply@pmhelp.co>";
+const SEND_EMAIL_HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
+const SITE_URL = Deno.env.get("SITE_URL") || "https://pmhelp.co";
+const SUPABASE_URL = Deno.env.get("PROJECT_URL") || "https://igiemqicokpdyhunldtq.supabase.co";
+// Initialize Resend
+const resend = new Resend(RESEND_API_KEY);
 
-interface AuthEvent {
-  type: string
-  user: {
-    id: string
-    email: string
-    email_confirmed_at?: string
-  }
-  email?: string
-  token?: string
-  redirect_to?: string
+// Extract secret (remove v1,whsec_ prefix)
+const hookSecret = SEND_EMAIL_HOOK_SECRET?.replace("v1,whsec_", "") || "";
+
+interface EmailData {
+  token: string;
+  token_hash: string;
+  redirect_to: string;
+  email_action_type: string;
+  site_url: string;
+  token_new?: string;
+  token_hash_new?: string;
+  old_email?: string;
+  old_phone?: string;
+  provider?: string;
+  factor_type?: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  phone?: string;
+  email_new?: string;
+  [key: string]: any;
 }
 
 Deno.serve(async (req) => {
-  // Log immediately - before any checks
-  console.log('=== AUTH EMAIL HANDLER CALLED ===')
-  console.log('Timestamp:', new Date().toISOString())
-  
+  console.log("=== AUTH EMAIL HANDLER CALLED ===");
+  console.log("Timestamp:", new Date().toISOString());
+
   try {
-    // Log all headers for debugging
-    const allHeaders: Record<string, string> = {}
-    req.headers.forEach((value, key) => {
-      allHeaders[key] = value
-    })
-    console.log('All request headers:', JSON.stringify(allHeaders, null, 2))
-    console.log('Request method:', req.method)
-    console.log('Request URL:', req.url)
-    
-    // Supabase Auth Hooks send Authorization header with the webhook secret
-    const authHeader = req.headers.get('Authorization')
-    
-    // Log what we received
-    console.log('Authorization header present:', authHeader ? 'YES' : 'NO')
-    if (authHeader) {
-      console.log('Authorization header value:', authHeader.substring(0, 30) + '...')
-    }
-    
-    // TEMPORARILY: Allow requests without auth for debugging
-    // This will help us see what Supabase is actually sending
-    if (!authHeader) {
-      console.warn('⚠️ WARNING: No authorization header received')
-      console.warn('⚠️ This suggests the hook is not properly configured')
-      console.warn('⚠️ Proceeding anyway to see the event data...')
-    } else {
-      // Extract token (Supabase sends as "Bearer <secret>")
-      const token = authHeader.startsWith('Bearer ') 
-        ? authHeader.substring(7) 
-        : authHeader
-      
-      console.log('WEBHOOK_SECRET set:', WEBHOOK_SECRET ? 'YES' : 'NO')
-      
-      // Verify the token matches our webhook secret
-      if (WEBHOOK_SECRET && token !== WEBHOOK_SECRET) {
-        console.error('❌ Invalid authorization token')
-        console.error('Expected (first 30 chars):', WEBHOOK_SECRET.substring(0, 30))
-        console.error('Received (first 30 chars):', token.substring(0, 30))
-        return new Response(JSON.stringify({ 
-          error: 'Invalid authorization token',
-          debug: {
-            expectedPrefix: WEBHOOK_SECRET.substring(0, 20),
-            receivedPrefix: token.substring(0, 20)
-          }
-        }), { 
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        })
-      }
-      
-      if (!WEBHOOK_SECRET) {
-        console.warn('⚠️ WEBHOOK_SECRET not set - skipping verification')
-      } else {
-        console.log('✅ Authorization token verified successfully')
-      }
+    // Only allow POST requests
+    if (req.method !== "POST") {
+      return new Response("Method not allowed", { status: 405 });
     }
 
-    // Parse the event body
-    console.log('Attempting to parse request body...')
-    let eventBody: any
+    // Get raw payload as text (needed for webhook verification)
+    const payload = await req.text();
+    const headers = Object.fromEntries(req.headers);
+
+    console.log("Request method:", req.method);
+    console.log("Headers received:", Object.keys(headers));
+
+    // Verify webhook secret is configured
+    if (!SEND_EMAIL_HOOK_SECRET || !hookSecret) {
+      console.error("❌ SEND_EMAIL_HOOK_SECRET not configured");
+      return new Response(
+        JSON.stringify({
+          error: {
+            http_code: 500,
+            message: "Webhook secret not configured",
+          },
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Verify webhook signature using standardwebhooks
+    const wh = new Webhook(hookSecret);
+    let verifiedData: { user: User; email_data: EmailData };
+
     try {
-      const bodyText = await req.text()
-      console.log('Request body length:', bodyText.length)
-      console.log('Request body (first 500 chars):', bodyText.substring(0, 500))
-      eventBody = JSON.parse(bodyText)
-    } catch (parseError) {
-      console.error('❌ Failed to parse request body:', parseError)
-      return new Response(JSON.stringify({ 
-        error: 'Invalid JSON in request body',
-        details: parseError.message 
-      }), { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-    
-    console.log('Event type:', eventBody?.type)
-    console.log('Event keys:', Object.keys(eventBody || {}))
-    console.log('Full event data:', JSON.stringify(eventBody, null, 2))
-    
-    const event: AuthEvent = eventBody
-    
-    // Validate event structure
-    if (!event || !event.type) {
-      console.error('❌ Invalid event data - missing type')
-      console.error('Event received:', event)
-      return new Response(JSON.stringify({ 
-        error: 'Invalid event data',
-        received: event 
-      }), { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-    
-    console.log('✅ Event validated, type:', event.type)
-    
-    // Get email template based on event type
-    const emailContent = getEmailTemplate(event)
-    
-    if (!emailContent) {
-      console.log(`⚠️ Unknown event type: ${event.type}`)
-      // Return success for unknown events (don't break auth flow)
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: 'Event type not handled',
-        eventType: event.type
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      verifiedData = wh.verify(payload, headers) as {
+        user: User;
+        email_data: EmailData;
+      };
+      console.log("✅ Webhook signature verified");
+    } catch (error) {
+      console.error("❌ Webhook verification failed:", error);
+      return new Response(
+        JSON.stringify({
+          error: {
+            http_code: 401,
+            message: "Invalid webhook signature",
+          },
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Get recipient email
-    const recipientEmail = event.user?.email || event.email
-    if (!recipientEmail) {
-      console.error('❌ No recipient email in event')
-      console.error('Event user:', event.user)
-      console.error('Event email field:', event.email)
-      return new Response(JSON.stringify({ 
-        error: 'No recipient email',
-        event: event 
-      }), { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const { user, email_data } = verifiedData;
 
-    console.log('📧 Preparing to send email to:', recipientEmail)
-    console.log('Email subject:', emailContent.subject)
+    console.log("Email action type:", email_data.email_action_type);
+    console.log("User email:", user.email);
+    console.log("Site URL:", email_data.site_url || SITE_URL);
 
-    // Check if Resend API key is set
+    // Verify Resend API key is configured
     if (!RESEND_API_KEY) {
-      console.error('❌ RESEND_API_KEY not set')
-      return new Response(JSON.stringify({ 
-        error: 'RESEND_API_KEY not configured' 
-      }), { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      })
+      console.error("❌ RESEND_API_KEY not configured");
+      return new Response(
+        JSON.stringify({
+          error: {
+            http_code: 500,
+            message: "Resend API key not configured",
+          },
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Send email via Resend
-    console.log('Sending email via Resend API...')
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
+    // Get email template based on email_action_type
+    const emailContent = getEmailTemplate(email_data, user, email_data.site_url || SITE_URL);
+
+    if (!emailContent) {
+      console.log(`⚠️ Unknown email action type: ${email_data.email_action_type}`);
+      // Return success for unknown types (don't break auth flow)
+      return new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle email change with Secure Email Change (two emails)
+    if (email_data.email_action_type === "email_change" && email_data.token_new && email_data.token_hash_new) {
+      // Secure Email Change enabled - send two emails
+      console.log("📧 Sending email change confirmation (secure mode - two emails)");
+
+      // Email 1: Current email with token_hash_new
+      const currentEmailContent = getEmailChangeTemplate(
+        email_data,
+        user.email,
+        email_data.token,
+        email_data.token_hash_new,
+        email_data.site_url || SITE_URL
+      );
+
+      await resend.emails.send({
         from: RESEND_FROM_EMAIL,
-        to: recipientEmail,
+        to: [user.email],
+        subject: "Confirm your email change",
+        html: currentEmailContent,
+      });
+
+      // Email 2: New email with token_hash
+      const newEmail = user.email_new || "";
+      const newEmailContent = getEmailChangeTemplate(
+        email_data,
+        newEmail,
+        email_data.token_new || "",
+        email_data.token_hash,
+        email_data.site_url || SITE_URL
+      );
+
+      const { data, error } = await resend.emails.send({
+        from: RESEND_FROM_EMAIL,
+        to: [newEmail],
+        subject: "Confirm your new email address",
+        html: newEmailContent,
+      });
+
+      if (error) {
+        console.error("❌ Resend API error:", error);
+        throw error;
+      }
+
+      console.log("✅ Both emails sent successfully! Message ID:", data?.id);
+    } else {
+      // Single email (signup, password recovery, etc.)
+      console.log(`📧 Sending email to: ${user.email}`);
+
+      const { data, error } = await resend.emails.send({
+        from: RESEND_FROM_EMAIL,
+        to: [user.email],
         subject: emailContent.subject,
         html: emailContent.html,
-      }),
-    })
+      });
 
-    const data = await resendResponse.json()
-    console.log('Resend API response status:', resendResponse.status)
-    console.log('Resend API response:', JSON.stringify(data, null, 2))
+      if (error) {
+        console.error("❌ Resend API error:", error);
+        throw error;
+      }
 
-    if (!resendResponse.ok) {
-      console.error('❌ Resend API error:', data)
-      throw new Error(`Resend API error: ${JSON.stringify(data)}`)
+      console.log("✅ Email sent successfully! Message ID:", data?.id);
     }
 
-    console.log('✅ Email sent successfully! Message ID:', data.id)
-    console.log('=== FUNCTION COMPLETED SUCCESSFULLY ===')
+    console.log("=== FUNCTION COMPLETED SUCCESSFULLY ===");
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      messageId: data.id 
-    }), {
+    // Return empty response with 200 status (as per Supabase docs)
+    return new Response(JSON.stringify({}), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error('❌ UNEXPECTED ERROR:', error)
-    console.error('Error stack:', error.stack)
-    console.error('Error message:', error.message)
-    console.error('=== FUNCTION FAILED ===')
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      stack: error.stack 
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-})
+    console.error("❌ UNEXPECTED ERROR:", error);
+    console.error("Error message:", error?.message);
+    console.error("=== FUNCTION FAILED ===");
 
-function getEmailTemplate(event: AuthEvent) {
-  const siteUrl = Deno.env.get('SITE_URL') || 'https://pmhelp.co'
-  
-  switch (event.type) {
-    case 'user.signup':
-      return {
-        subject: 'Welcome to PMHelp! Confirm your email',
-        html: getSignupEmailTemplate(event, siteUrl)
+    return new Response(
+      JSON.stringify({
+        error: {
+          http_code: error?.code || 500,
+          message: error?.message || "Internal server error",
+        },
+      }),
+      {
+        status: error?.code || 500,
+        headers: { "Content-Type": "application/json" },
       }
-    
-    case 'user.password_recovery':
+    );
+  }
+});
+
+function getEmailTemplate(
+  email_data: EmailData,
+  user: User,
+  siteUrl: string
+): { subject: string; html: string } | null {
+  switch (email_data.email_action_type) {
+    case "signup":
       return {
-        subject: 'Reset your PMHelp password',
-        html: getPasswordResetEmailTemplate(event, siteUrl)
-      }
-    
-    case 'user.email_change':
+        subject: "Welcome to PMHelp! Confirm your email",
+        html: getSignupEmailTemplate(email_data, siteUrl),
+      };
+
+    case "password_recovery":
       return {
-        subject: 'Confirm your new email address',
-        html: getEmailChangeTemplate(event, siteUrl)
-      }
-    
-    case 'user.invite':
+        subject: "Reset your PMHelp password",
+        html: getPasswordResetEmailTemplate(email_data, siteUrl),
+      };
+
+    case "email_change":
+      // Will be handled separately for secure email change
       return {
-        subject: 'You\'ve been invited to PMHelp',
-        html: getInviteEmailTemplate(event, siteUrl)
-      }
-    
+        subject: "Confirm your new email address",
+        html: getEmailChangeTemplate(
+          email_data,
+          user.email_new || user.email || "",
+          email_data.token_new || email_data.token,
+          email_data.token_hash_new || email_data.token_hash,
+          siteUrl
+        ),
+      };
+
+    case "invite":
+      return {
+        subject: "You've been invited to PMHelp",
+        html: getInviteEmailTemplate(email_data, siteUrl),
+      };
+
     default:
-      return null
+      return null;
   }
 }
 
-function getSignupEmailTemplate(event: AuthEvent, siteUrl: string): string {
-  const confirmationUrl = `${siteUrl}/auth/confirm?token=${event.token}&type=signup`
-  
+function getSignupEmailTemplate(email_data: EmailData, siteUrl: string): string {
+  // Use Supabase's built-in verification endpoint
+  // This will automatically verify the token and redirect to emailRedirectTo
+  // Use token (OTP) not token_hash for the verify endpoint
+  const redirectTo = encodeURIComponent(email_data.redirect_to || `${siteUrl}/auth/confirm`);
+  const confirmationUrl = `${SUPABASE_URL}/auth/v1/verify?token=${email_data.token}&type=signup&redirect_to=${redirectTo}`;
+
   return `
 <!DOCTYPE html>
 <html>
@@ -290,12 +304,15 @@ function getSignupEmailTemplate(event: AuthEvent, siteUrl: string): string {
   </div>
 </body>
 </html>
-  `
+  `;
 }
 
-function getPasswordResetEmailTemplate(event: AuthEvent, siteUrl: string): string {
-  const resetUrl = `${siteUrl}/reset-password?token=${event.token}`
-  
+function getPasswordResetEmailTemplate(email_data: EmailData, siteUrl: string): string {
+  // Use Supabase's built-in verification endpoint for password reset
+  // This will automatically verify the token and redirect to the reset password page
+  const redirectTo = encodeURIComponent(email_data.redirect_to || `${siteUrl}/auth/confirm`);
+  const resetUrl = `${SUPABASE_URL}/auth/v1/verify?token=${email_data.token}&type=recovery&redirect_to=${redirectTo}`;
+
   return `
 <!DOCTYPE html>
 <html>
@@ -330,12 +347,20 @@ function getPasswordResetEmailTemplate(event: AuthEvent, siteUrl: string): strin
   </div>
 </body>
 </html>
-  `
+  `;
 }
 
-function getEmailChangeTemplate(event: AuthEvent, siteUrl: string): string {
-  const confirmationUrl = `${siteUrl}/auth/confirm?token=${event.token}&type=email_change`
-  
+function getEmailChangeTemplate(
+  email_data: EmailData,
+  email: string,
+  token: string,
+  token_hash: string,
+  siteUrl: string
+): string {
+  // Use Supabase's built-in verification endpoint for email change
+  const redirectTo = encodeURIComponent(email_data.redirect_to || `${siteUrl}/auth/confirm`);
+  const confirmationUrl = `${SUPABASE_URL}/auth/v1/verify?token=${token}&type=email_change&redirect_to=${redirectTo}`;
+
   return `
 <!DOCTYPE html>
 <html>
@@ -361,16 +386,23 @@ function getEmailChangeTemplate(event: AuthEvent, siteUrl: string): string {
       </a>
     </div>
     
-    <p style="color: #666; font-size: 14px;">If you didn't request this change, please contact support immediately.</p>
+    <p style="color: #666; font-size: 14px;">Or copy and paste this link:</p>
+    <p style="color: #9333ea; font-size: 12px; word-break: break-all;">${confirmationUrl}</p>
+    
+    <p style="color: #666; font-size: 14px; margin-top: 30px;">
+      If you didn't request this change, please contact support immediately.
+    </p>
   </div>
 </body>
 </html>
-  `
+  `;
 }
 
-function getInviteEmailTemplate(event: AuthEvent, siteUrl: string): string {
-  const inviteUrl = `${siteUrl}/auth/accept-invite?token=${event.token}`
-  
+function getInviteEmailTemplate(email_data: EmailData, siteUrl: string): string {
+  // Use Supabase's built-in verification endpoint for invites
+  const redirectTo = encodeURIComponent(email_data.redirect_to || `${siteUrl}/auth/confirm`);
+  const inviteUrl = `${SUPABASE_URL}/auth/v1/verify?token=${email_data.token}&type=invite&redirect_to=${redirectTo}`;
+
   return `
 <!DOCTYPE html>
 <html>
@@ -395,8 +427,11 @@ function getInviteEmailTemplate(event: AuthEvent, siteUrl: string): string {
         Accept Invitation
       </a>
     </div>
+    
+    <p style="color: #666; font-size: 14px;">Or copy and paste this link:</p>
+    <p style="color: #9333ea; font-size: 12px; word-break: break-all;">${inviteUrl}</p>
   </div>
 </body>
 </html>
-  `
+  `;
 }

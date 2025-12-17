@@ -47,11 +47,15 @@ const Auth = {
         throw new Error('Supabase client not initialized');
       }
 
+      // Set email redirect URL for confirmation
+      const emailRedirectTo = `${window.location.origin}/auth/confirm`;
+
       const { data, error } = await window.supabaseClient.auth.signUp({
         email: email,
         password: password,
         options: {
-          data: metadata
+          data: metadata,
+          emailRedirectTo: emailRedirectTo
         }
       });
 

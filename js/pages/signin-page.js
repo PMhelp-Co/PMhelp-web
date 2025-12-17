@@ -40,11 +40,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const result = await window.Auth.signIn(email, password);
 
     if (result.success) {
-      // Success - redirect to dashboard or intended page
-      const redirectUrl = window.RouteGuard?.getRedirectUrl() || 
-                         new URLSearchParams(window.location.search).get('redirect') || 
-                         'index.html';
-      window.location.href = redirectUrl;
+      // Use RouteGuard helper method
+      window.RouteGuard?.redirectAfterLogin('index.html');
     } else {
       showMessage(result.error || 'Failed to sign in. Please check your credentials.', true);
       signinButton.disabled = false;
@@ -55,11 +52,14 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle Google sign in
   googleSigninBtn.addEventListener('click', async function() {
     const result = await window.Auth.signInWithOAuth('google');
-    
-    if (!result.success) {
+    if (result.success) {
+      // Use RouteGuard helper method   log the result
+      console.log("result success");
+      window.RouteGuard?.redirectAfterLogin('index.html');
+    } else {
       showMessage(result.error || 'Failed to sign in with Google.', true);
     }
-      // OAuth will redirect, so no need to handle success
+   
   });
 });
 
