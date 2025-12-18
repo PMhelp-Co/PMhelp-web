@@ -60,10 +60,29 @@ const RouteGuard = {
   // Check Authentication
   // =====================================================
   async checkAuth() {
-    // Wait a bit for AuthState to initialize
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Refresh auth state before deciding (avoids false redirects on slow loads)
+    try {
+      if (window.AuthState?.checkAuthState) {
+        await window.AuthState.checkAuthState();
+      }
+    } catch (e) {
+      // If refresh fails, we'll fall back to current state + retry loop below
+      console.warn('RouteGuard: checkAuthState failed, falling back:', e?.message || e);
+    }
 
-    const isAuthenticated = window.AuthState?.getIsAuthenticated() ?? false;
+    // Small retry loop to avoid race conditions (e.g. rapid clicks on curriculum links)
+    let isAuthenticated = window.AuthState?.getIsAuthenticated() ?? false;
+    for (let i = 0; i < 10 && !isAuthenticated; i++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      try {
+        if (window.AuthState?.checkAuthState) {
+          await window.AuthState.checkAuthState();
+        }
+      } catch (_) {
+        // ignore
+      }
+      isAuthenticated = window.AuthState?.getIsAuthenticated() ?? false;
+    }
 
     if (!isAuthenticated) {
       // Store intended destination
