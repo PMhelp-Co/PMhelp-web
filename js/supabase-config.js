@@ -19,6 +19,18 @@ if (typeof supabase !== 'undefined') {
   
   // Also export as 'supabase' for convenience
   window.supabase = supabaseClient;
+
+  // Prevent "flash of unauth CTAs" on page navigation:
+  // if a session/token exists in localStorage, hide unauth header CTAs immediately via CSS.
+  try {
+    const hasToken = !!localStorage.getItem('supabase.auth.token');
+    const hasSession = !!localStorage.getItem('supabase.auth.session');
+    if (hasToken || hasSession) {
+      document.documentElement.classList.add('auth-has-session');
+    }
+  } catch (_) {
+    // ignore (e.g. storage blocked)
+  }
   
   console.log('Supabase client initialized successfully');
 } else {

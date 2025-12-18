@@ -88,6 +88,9 @@ const HeaderAuth = {
     const isAuthenticated = state?.isAuthenticated ?? window.AuthState?.getIsAuthenticated() ?? false;
     const user = state?.user ?? window.AuthState?.getCurrentUser();
 
+    // Keep the early "no flicker" class in sync with actual auth state
+    document.documentElement.classList.toggle('auth-has-session', !!(isAuthenticated && user));
+
     if (isAuthenticated && user) {
       await this.showAuthenticatedUI(user);
     } else {

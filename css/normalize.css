@@ -1,3 +1,14 @@
+/* =====================================================
+   Prevent "flash of unauth header CTAs" (Start your Journey / Sign in / Sign up)
+   when the user already has a session in storage.
+   The `auth-has-session` class is set very early in `js/supabase-config.js`.
+   ===================================================== */
+html.auth-has-session .brix---header-wrapper .brix---header-right-col .brix---btn-header-hidden-on-mbl,
+html.auth-has-session .brix---header-wrapper .brix---header-right-col .header-auth-buttons,
+html.auth-has-session .brix---header-wrapper .brix---header-menu-wrapper .menu-buttons-wrapper {
+  display: none !important;
+}
+
 /*! normalize.css v3.0.3 | MIT License | github.com/necolas/normalize.css */
 /**
  * 1. Set default font family to sans-serif.
