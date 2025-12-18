@@ -10,6 +10,9 @@ const HeaderAuth = {
   initialized: false,
   documentClickHandler: null,
   authStateListener: null,
+  _updateInProgress: false,
+  _needsUpdate: false,
+  _latestState: null,
 
   // =====================================================
   // Initialize Header Auth
@@ -50,23 +53,34 @@ const HeaderAuth = {
   // =====================================================
   updateHeader(state = null) {
     if (!this.headerRightCol) return;
-    
-    // Prevent rapid successive updates using requestAnimationFrame
-    if (this._updateScheduled) {
+
+    // Always keep the latest state so we render the most recent auth info.
+    this._latestState = state;
+
+    // Serialize updates (prevents duplicate menus when async rendering overlaps).
+    if (this._updateInProgress) {
+      this._needsUpdate = true;
       return;
     }
-    this._updateScheduled = true;
-    
+
+    this._updateInProgress = true;
+
     requestAnimationFrame(() => {
-      this._performUpdate(state);
-      this._updateScheduled = false;
+      (async () => {
+        do {
+          this._needsUpdate = false;
+          await this._performUpdate(this._latestState);
+        } while (this._needsUpdate);
+
+        this._updateInProgress = false;
+      })();
     });
   },
 
   // =====================================================
   // Perform the actual update
   // =====================================================
-  _performUpdate(state) {
+  async _performUpdate(state) {
     // Clear existing auth UI FIRST
     this.clearAuthUI();
     
@@ -75,10 +89,51 @@ const HeaderAuth = {
     const user = state?.user ?? window.AuthState?.getCurrentUser();
 
     if (isAuthenticated && user) {
-      this.showAuthenticatedUI(user);
+      await this.showAuthenticatedUI(user);
     } else {
       this.showUnauthenticatedUI();
     }
+  },
+
+  // =====================================================
+  // Helpers: hide/show header CTAs across pages
+  // =====================================================
+  _getHeaderRoot() {
+    // Scope DOM changes to the header to avoid affecting page content CTAs.
+    return this.headerRightCol?.closest('.brix---header-wrapper') || document;
+  },
+
+  _setUnauthHeaderCtasVisible(visible) {
+    const root = this._getHeaderRoot();
+
+    // Different pages use different wrappers for the unauth CTAs.
+    const candidates = [
+      ...root.querySelectorAll('.header-auth-buttons'),
+      ...root.querySelectorAll('.menu-buttons-wrapper'),
+      ...root.querySelectorAll('.brix---btn-header-hidden-on-mbl'),
+    ];
+
+    candidates.forEach((el) => {
+      const links = Array.from(el.querySelectorAll('a[href]'));
+
+      const hasAuthCta = links.some((a) => {
+        const href = (a.getAttribute('href') || '').toLowerCase();
+        const txt = (a.textContent || '').toLowerCase().trim();
+
+        return (
+          href.includes('signin') ||
+          href.includes('signup') ||
+          txt.includes('start your journey') ||
+          txt === 'sign in' ||
+          txt === 'sign up' ||
+          txt === 'signup'
+        );
+      });
+
+      if (hasAuthCta) {
+        el.style.display = visible ? '' : 'none';
+      }
+    });
   },
 
   // =====================================================
@@ -103,12 +158,6 @@ const HeaderAuth = {
     const orphanedMenus = this.headerRightCol.querySelectorAll('.user-menu-container');
     orphanedMenus.forEach(element => {
       element.remove();
-    });
-    
-    // Reset the visibility of header auth buttons (they'll be shown/hidden by updateHeader)
-    const authButtons = document.querySelectorAll('.header-auth-buttons');
-    authButtons.forEach(button => {
-      button.style.display = '';
     });
     
     // Remove mobile menu auth elements
@@ -137,11 +186,7 @@ const HeaderAuth = {
   // Show Unauthenticated UI (Sign In Button)
   // =====================================================
   showUnauthenticatedUI() {
-
-    const authButtons = document.querySelectorAll('.header-auth-buttons');
-    authButtons.forEach(button => {
-      button.style.display = '';
-    });
+    this._setUnauthHeaderCtasVisible(true);
   
   
     // Create desktop version (hidden on mobile)
@@ -193,10 +238,8 @@ const HeaderAuth = {
   // Show Authenticated UI (User Menu)
   // =====================================================
   async showAuthenticatedUI(user) {
-    const authButtons = document.querySelectorAll('.header-auth-buttons');
-    authButtons.forEach(button => {
-      button.style.display = 'none';
-    });
+    // Hide unauth CTAs across all pages (Start your Journey / Sign in / Sign up).
+    this._setUnauthHeaderCtasVisible(false);
 
     // ... rest of existing showAuthenticatedUI code ...
     const authContainer = document.createElement('div');
