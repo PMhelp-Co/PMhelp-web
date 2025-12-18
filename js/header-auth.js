@@ -174,6 +174,10 @@ const HeaderAuth = {
       if (mobileDivider) {
         mobileDivider.remove();
       }
+      const mobileCtas = mobileMenu.querySelector('.header-auth-mobile-ctas');
+      if (mobileCtas) {
+        mobileCtas.remove();
+      }
       // Also remove mobile user menu if it exists
       const mobileUserMenu = mobileMenu.querySelector('.header-auth-mobile-user');
       if (mobileUserMenu) {
@@ -189,52 +193,51 @@ const HeaderAuth = {
   // Show Unauthenticated UI (Sign In Button)
   // =====================================================
   showUnauthenticatedUI() {
-    this._setUnauthHeaderCtasVisible(true);
-  
-  
-    // Create desktop version (hidden on mobile)
-    // const authContainer = document.createElement('div');
-    // authContainer.className = 'header-auth-ui brix---btn-header-hidden-on-mbl';
-    
-    // const signInBtn = document.createElement('a');
-    // signInBtn.href = 'signin.html';
-    // signInBtn.className = 'brix---btn-primary-small w-button';
-    // signInBtn.textContent = 'Sign In';
-    
-    // authContainer.appendChild(signInBtn);
-    
-    // // Insert before hamburger menu or at the end
-    // const hamburgerMenu = this.headerRightCol.querySelector('.brix---hamburger-menu-wrapper');
-    // if (hamburgerMenu) {
-    //   this.headerRightCol.insertBefore(authContainer, hamburgerMenu);
-    // } else {
-    //   this.headerRightCol.appendChild(authContainer);
-    // }
+    // We no longer hardcode auth CTAs in HTML.
+    // If the user is logged out, inject them into the header + mobile menu.
 
-    // // Create mobile version (in dropdown menu)
-    // const mobileMenu = document.querySelector('.brix---header-menu-wrapper.w-nav-menu');
-    // if (mobileMenu) {
-    //   // Check if mobile sign in link already exists
-    //   let mobileSignIn = mobileMenu.querySelector('.header-auth-mobile-signin');
-      
-    //   if (!mobileSignIn) {
-    //     // Create divider before sign in button
-    //     const divider = document.createElement('div');
-    //     divider.style.cssText = 'height: 1px; background: #e5e7eb; margin: 16px 0;';
-    //     divider.className = 'header-auth-mobile-divider';
-        
-    //     // Create mobile sign in link
-    //     mobileSignIn = document.createElement('a');
-    //     mobileSignIn.href = 'signin.html';
-    //     mobileSignIn.className = 'text-block-3 w-nav-link header-auth-mobile-signin';
-    //     mobileSignIn.textContent = 'Sign In';
-    //     mobileSignIn.style.cssText = 'padding: 12px 20px; font-weight: 500;';
-        
-    //     // Insert divider and sign in link at the end of mobile menu
-    //     mobileMenu.appendChild(divider);
-    //     mobileMenu.appendChild(mobileSignIn);
-    //   }
-    // }
+    // --- Desktop header CTAs (hidden on mobile by Webflow class) ---
+    const makeCta = (href, text) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'brix---btn-header-hidden-on-mbl header-auth-ui header-auth-unauth';
+
+      const link = document.createElement('a');
+      link.href = href;
+      link.className = 'brix---btn-primary-small w-button';
+      link.textContent = text;
+
+      const svg = document.createElement('div');
+      svg.className = 'svg';
+      svg.innerHTML = '<img width="11" height="8.79999828338623" alt="" src="images/Vectors-Wrapper.svg" loading="lazy" class="vectors-wrapper-2">';
+
+      wrapper.appendChild(link);
+      wrapper.appendChild(svg);
+      return wrapper;
+    };
+
+    const hamburgerMenu = this.headerRightCol.querySelector('.brix---hamburger-menu-wrapper');
+    const signInCta = makeCta('signin.html', 'Sign In');
+    const startJourneyCta = makeCta('signup.html', 'Start your Journey');
+
+    if (hamburgerMenu) {
+      this.headerRightCol.insertBefore(startJourneyCta, hamburgerMenu);
+      this.headerRightCol.insertBefore(signInCta, hamburgerMenu);
+    } else {
+      this.headerRightCol.appendChild(signInCta);
+      this.headerRightCol.appendChild(startJourneyCta);
+    }
+
+    // --- Mobile menu CTAs (shown only on mobile by existing CSS rules) ---
+    const mobileMenu = document.querySelector('.brix---header-menu-wrapper.w-nav-menu');
+    if (mobileMenu && !mobileMenu.querySelector('.header-auth-mobile-ctas')) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'menu-buttons-wrapper header-auth-mobile-ctas';
+      wrapper.innerHTML = `
+        <a href="signin.html" class="brix---btn-primary-small w-button login-btn">Sign in</a>
+        <a href="signup.html" class="brix---btn-primary-small w-button start-btn">Start your Journey</a>
+      `;
+      mobileMenu.appendChild(wrapper);
+    }
   },
 
   // =====================================================
