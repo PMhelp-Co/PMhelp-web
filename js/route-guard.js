@@ -5,10 +5,13 @@
 // =====================================================
 
 const RouteGuard = {
+  // Protect BOTH pretty URLs and .html pages by using base names.
+  // Netlify can serve `detail_course.html` at `/detail_course` (pretty URLs),
+  // and can also add trailing slashes.
   protectedRoutes: [
-    'detail_course.html',
-    'detail_course-lesson.html',
-    'dashboard.html'
+    'detail_course',
+    'detail_course-lesson',
+    'dashboard'
   ],
 
   // =====================================================
@@ -33,16 +36,24 @@ const RouteGuard = {
   // Get Current Page
   // =====================================================
   getCurrentPage() {
-    const path = window.location.pathname;
-    const page = path.split('/').pop() || 'index.html';
-    return page;
+    // Works for:
+    // - /detail_course.html
+    // - /detail_course
+    // - /detail_course/
+    // - /
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    const last = segments[segments.length - 1] || 'index';
+
+    // Normalize: remove `.html` if present
+    return last.replace(/\.html$/i, '');
   },
 
   // =====================================================
   // Check if Route is Protected
   // =====================================================
   isProtectedRoute(page) {
-    return this.protectedRoutes.some(route => page.includes(route));
+    const normalized = (page || '').replace(/\.html$/i, '');
+    return this.protectedRoutes.some(route => normalized.includes(route));
   },
 
   // =====================================================
@@ -60,7 +71,8 @@ const RouteGuard = {
       sessionStorage.setItem('redirectAfterLogin', currentUrl);
 
       // Redirect to sign in
-      window.location.href = 'signin.html';
+      // Use absolute path so it works even when current URL is `/detail_course/` etc.
+      window.location.href = '/signin.html';
       return false;
     }
 
