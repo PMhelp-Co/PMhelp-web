@@ -220,8 +220,9 @@ const HeaderAuth = {
     const startJourneyCta = makeCta('signup.html', 'Start your Journey');
 
     if (hamburgerMenu) {
-      this.headerRightCol.insertBefore(startJourneyCta, hamburgerMenu);
+      // Order: Sign In first, then Start your Journey (as requested)
       this.headerRightCol.insertBefore(signInCta, hamburgerMenu);
+      this.headerRightCol.insertBefore(startJourneyCta, hamburgerMenu);
     } else {
       this.headerRightCol.appendChild(signInCta);
       this.headerRightCol.appendChild(startJourneyCta);

@@ -7,7 +7,10 @@
 const AuthState = {
   currentUser: null,
   currentSession: null,
-  isAuthenticated: false,
+  // IMPORTANT: start as "unknown" to avoid flashing logged-out UI
+  // before we finish checking Supabase session on page load.
+  isAuthenticated: null,
+  ready: false,
   listeners: [],
 
   
@@ -31,6 +34,7 @@ async init(retryCount = 0) {
 
   // Check current auth state
   await this.checkAuthState();
+  this.ready = true;
 
   // Listen to auth state changes
   window.Auth.onAuthStateChange((event, session) => {
@@ -106,6 +110,9 @@ async handleAuthStateChange(event, session) {
     this.isAuthenticated = false;
   }
 
+  // Once we get any auth event, we are definitely "ready"
+  this.ready = true;
+
   // Notify all listeners
   this.notifyListeners();
 
@@ -146,9 +153,10 @@ async handleAuthStateChange(event, session) {
   // =====================================================
   addListener(callback) {
     this.listeners.push(callback);
-    
-    // Immediately call with current state
-    if (this.isAuthenticated !== undefined) {
+
+    // Do NOT immediately call while auth state is still unknown.
+    // This prevents flashing "logged out" UI for signed-in users.
+    if (this.ready && this.isAuthenticated !== null) {
       callback({
         isAuthenticated: this.isAuthenticated,
         user: this.currentUser,
@@ -173,6 +181,9 @@ async handleAuthStateChange(event, session) {
   // Notify All Listeners
   // =====================================================
   notifyListeners() {
+    // Don't broadcast until we've resolved auth at least once.
+    if (this.isAuthenticated === null && !this.ready) return;
+
     const state = {
       isAuthenticated: this.isAuthenticated,
       user: this.currentUser,
