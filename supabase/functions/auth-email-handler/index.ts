@@ -6,7 +6,7 @@ import { Resend } from "npm:resend";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "PMHelp <noreply@pmhelp.co>";
 const SEND_EMAIL_HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
-const SITE_URL = Deno.env.get("SITE_URL") || "https://pmhelp.co";
+const SITE_URL = Deno.env.get("SIT_URL") || "https://transcendent-sprinkles-8cd7b5.netlify.app";
 const SUPABASE_URL = Deno.env.get("PROJECT_URL") || "https://igiemqicokpdyhunldtq.supabase.co";
 // Initialize Resend
 const resend = new Resend(RESEND_API_KEY);
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
     console.log("Email action type:", email_data.email_action_type);
     console.log("User email:", user.email);
-    console.log("Site URL:", email_data.site_url || SITE_URL);
+    console.log("Site URL:", SITE_URL);
 
     // Verify Resend API key is configured
     if (!RESEND_API_KEY) {
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
     }
 
     // Get email template based on email_action_type
-    const emailContent = getEmailTemplate(email_data, user, email_data.site_url || SITE_URL);
+    const emailContent = getEmailTemplate(email_data, user, SITE_URL);
 
     if (!emailContent) {
       console.log(`⚠️ Unknown email action type: ${email_data.email_action_type}`);
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
         user.email,
         email_data.token,
         email_data.token_hash_new,
-        email_data.site_url || SITE_URL
+         SITE_URL
       );
 
       await resend.emails.send({
@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
         newEmail,
         email_data.token_new || "",
         email_data.token_hash,
-        email_data.site_url || SITE_URL
+         SITE_URL
       );
 
       const { data, error } = await resend.emails.send({
@@ -232,12 +232,14 @@ function getEmailTemplate(
         subject: "Welcome to PMHelp! Confirm your email",
         html: getSignupEmailTemplate(email_data, siteUrl),
       };
-
-    case "password_recovery":
-      return {
-        subject: "Reset your PMHelp password",
-        html: getPasswordResetEmailTemplate(email_data, siteUrl),
-      };
+      // ... existing cases above ...
+      case "recovery":
+        case "password_recovery":
+          return {
+            subject: "Reset your PMHelp password",
+            html: getPasswordResetEmailTemplate(email_data, siteUrl),
+          };
+  // ... existing cases below ...
 
     case "email_change":
       // Will be handled separately for secure email change
@@ -264,11 +266,22 @@ function getEmailTemplate(
 }
 
 function getSignupEmailTemplate(email_data: EmailData, siteUrl: string): string {
-  // Use Supabase's built-in verification endpoint
-  // This will automatically verify the token and redirect to emailRedirectTo
-  // Use token (OTP) not token_hash for the verify endpoint
-  const redirectTo = encodeURIComponent(email_data.redirect_to || `${siteUrl}/auth/confirm`);
-  const confirmationUrl = `${SUPABASE_URL}/auth/v1/verify?token=${email_data.token}&type=signup&redirect_to=${redirectTo}`;
+  // IMPORTANT:
+  // - For /auth/v1/verify, use token_hash (not token)
+  // - For signup confirmation, use type=signup
+  // - Ensure redirect_to points to an actual file for static hosting (confirm.html)
+  const defaultRedirect = `${siteUrl}/auth/confirm.html`;
+  const rawRedirect = email_data.redirect_to || defaultRedirect;
+  const redirectTarget = rawRedirect.endsWith("/auth/confirm")
+    ? `${rawRedirect}.html`
+    : rawRedirect;
+  const redirectTo = encodeURIComponent(redirectTarget);
+
+  const confirmationUrl =
+    `${SUPABASE_URL}/auth/v1/verify` +
+    `?token=${email_data.token_hash}` +
+    `&type=signup` +
+    `&redirect_to=${redirectTo}`;
 
   return `
 <!DOCTYPE html>
@@ -309,9 +322,14 @@ function getSignupEmailTemplate(email_data: EmailData, siteUrl: string): string 
 
 function getPasswordResetEmailTemplate(email_data: EmailData, siteUrl: string): string {
   // Use Supabase's built-in verification endpoint for password reset
-  // This will automatically verify the token and redirect to the reset password page
-  const redirectTo = encodeURIComponent(email_data.redirect_to || `${siteUrl}/auth/confirm`);
-  const resetUrl = `${SUPABASE_URL}/auth/v1/verify?token=${email_data.token}&type=recovery&redirect_to=${redirectTo}`;
+  // For /auth/v1/verify: use token_hash (NOT token) and type=recovery
+  const defaultRedirect = `${siteUrl}/auth/confirm.html`;
+  const rawRedirect = email_data.redirect_to || defaultRedirect;
+  const redirectTarget = rawRedirect.endsWith("/auth/confirm")
+    ? `${rawRedirect}.html`
+    : rawRedirect;
+  const redirectTo = encodeURIComponent(redirectTarget);
+  const resetUrl = `${SUPABASE_URL}/auth/v1/verify?token=${email_data.token_hash}&type=recovery&redirect_to=${redirectTo}`;
 
   return `
 <!DOCTYPE html>
@@ -358,8 +376,14 @@ function getEmailChangeTemplate(
   siteUrl: string
 ): string {
   // Use Supabase's built-in verification endpoint for email change
-  const redirectTo = encodeURIComponent(email_data.redirect_to || `${siteUrl}/auth/confirm`);
-  const confirmationUrl = `${SUPABASE_URL}/auth/v1/verify?token=${token}&type=email_change&redirect_to=${redirectTo}`;
+  // For /auth/v1/verify: use token_hash (NOT token) and type=email_change
+  const defaultRedirect = `${siteUrl}/auth/confirm.html`;
+  const rawRedirect = email_data.redirect_to || defaultRedirect;
+  const redirectTarget = rawRedirect.endsWith("/auth/confirm")
+    ? `${rawRedirect}.html`
+    : rawRedirect;
+  const redirectTo = encodeURIComponent(redirectTarget);
+  const confirmationUrl = `${SUPABASE_URL}/auth/v1/verify?token=${token_hash}&type=email_change&redirect_to=${redirectTo}`;
 
   return `
 <!DOCTYPE html>
@@ -400,8 +424,14 @@ function getEmailChangeTemplate(
 
 function getInviteEmailTemplate(email_data: EmailData, siteUrl: string): string {
   // Use Supabase's built-in verification endpoint for invites
-  const redirectTo = encodeURIComponent(email_data.redirect_to || `${siteUrl}/auth/confirm`);
-  const inviteUrl = `${SUPABASE_URL}/auth/v1/verify?token=${email_data.token}&type=invite&redirect_to=${redirectTo}`;
+  // For /auth/v1/verify: use token_hash (NOT token) and type=invite
+  const defaultRedirect = `${siteUrl}/auth/confirm.html`;
+  const rawRedirect = email_data.redirect_to || defaultRedirect;
+  const redirectTarget = rawRedirect.endsWith("/auth/confirm")
+    ? `${rawRedirect}.html`
+    : rawRedirect;
+  const redirectTo = encodeURIComponent(redirectTarget);
+  const inviteUrl = `${SUPABASE_URL}/auth/v1/verify?token=${email_data.token_hash}&type=invite&redirect_to=${redirectTo}`;
 
   return `
 <!DOCTYPE html>

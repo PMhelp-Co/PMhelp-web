@@ -48,7 +48,9 @@ const Auth = {
       }
 
       // Set email redirect URL for confirmation
-      const emailRedirectTo = `${window.location.origin}/auth/confirm`;
+      // IMPORTANT: this must be a real file path for static hosting (Live Server),
+      // otherwise you'll see "Cannot GET /auth/confirm".
+      const emailRedirectTo = `${window.location.origin}/auth/confirm.html`;
 
       const { data, error } = await window.supabaseClient.auth.signUp({
         email: email,
@@ -119,7 +121,9 @@ const Auth = {
 
       // Default redirect URL
       if (!redirectUrl) {
-        redirectUrl = `${window.location.origin}/reset-password.html`;
+        // Route password recovery back through /auth/confirm.html so it can
+        // set the session from the URL fragment, then redirect to reset-password.html.
+        redirectUrl = `${window.location.origin}/auth/confirm.html`;
       }
 
       const { data, error } = await window.supabaseClient.auth.resetPasswordForEmail(email, {
