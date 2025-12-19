@@ -138,7 +138,7 @@ function getCourseThumbnailUrl(courseSlug) {
 /**
  * Render course details sidebar
  */
-function renderCourseSidebar() {
+async function renderCourseSidebar() {
   if (!currentCourse) return;
   
   // Update course thumbnail from Supabase Storage
@@ -166,10 +166,22 @@ function renderCourseSidebar() {
     }
   }
   
-  // Update lesson count
-  const lessonCountElement = document.querySelector('.course-details .font-16px');
-  if (lessonCountElement) {
-    lessonCountElement.textContent = `${currentCourse.lesson_count || 0} Lessons`;
+  // Fetch and update lesson count
+  try {
+    const lessons = await window.coursesAPI.getCourseLessons(currentCourse.id);
+    const lessonCount = lessons ? lessons.length : 0;
+    
+    const lessonCountElement = document.querySelector('.details-div .course-details:first-child .font-16px');
+    if (lessonCountElement) {
+      lessonCountElement.textContent = `${lessonCount} ${lessonCount === 1 ? 'Lesson' : 'Lessons'}`;
+    }
+  } catch (error) {
+    console.error('Error fetching lesson count:', error);
+    // Fallback to 0 if fetch fails
+    const lessonCountElement = document.querySelector('.details-div .course-details:first-child .font-16px');
+    if (lessonCountElement) {
+      lessonCountElement.textContent = '0 Lessons';
+    }
   }
   
   // Update enroll button link
@@ -440,7 +452,7 @@ async function initializeCourseDetailPage() {
     renderCourseAbout();
     await renderLearningObjectives();
     await renderLessons();
-    renderCourseSidebar();
+    await renderCourseSidebar();
     await renderContentSources();
     await renderCourseNavigation();
     
