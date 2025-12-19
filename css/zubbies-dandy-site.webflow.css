@@ -38,6 +38,9 @@
   --systemflow-lite--primary--10: #f2f6ff;
 }
 
+.content.w--current {
+  background-color: var(--elements-webflow-library--secondary--color-2);
+}
 .w-layout-hflex {
   flex-direction: row;
   align-items: flex-start;
