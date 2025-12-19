@@ -192,27 +192,27 @@ async function renderCurriculum() {
 
     // Render each lesson
     lessons.forEach((lesson) => {
-      const isCurrentLesson = currentLesson && lesson.id === currentLesson.id;
+      const isCurrentLesson = currentLesson && (lesson.id === currentLesson.id || lesson.slug === currentLesson.slug);
       const isCompleted = completedLessonIds.includes(lesson.id);
       
       const item = document.createElement('div');
       item.className = 'collection-item-8 w-dyn-item';
-      if (isCurrentLesson) {
-        item.classList.add('w--current');
-      }
       item.setAttribute('role', 'listitem');
 
       // Determine icon based on lesson type
-      const isVideo = lesson.icon === 'Video' || lesson.video_url;
-      const articleIcon = 'images/material-symbols-light_article-outline.png';
-      const videoIcon = 'images/Container.png';
+      const isVideo = lesson.class === 'Video' || lesson.video_url;
+      const articleIcon = 'https://cdn.prod.website-files.com/66bfc83501d1faf8dbade3d5/6704403a8c7c235704031bd0_material-symbols-light_article-outline.png';
+      const videoIcon = 'https://cdn.prod.website-files.com/66bfc83501d1faf8dbade3d5/6704403a2c121c9c8c458f1d_Container.png';
 
       const duration = lesson.duration ? formatDuration(lesson.duration) : '';
 
+      // Build link with proper active state
+      const linkClass = `content w-inline-block${isCurrentLesson ? ' w--current' : ''}`;
+      const ariaCurrent = isCurrentLesson ? ' aria-current="page"' : '';
+
       item.innerHTML = `
         <a href="detail_course-lesson.html?course=${currentCourse.slug}&lesson=${lesson.slug}" 
-           class="content w-inline-block ${isCurrentLesson ? 'w--current' : ''}"
-           ${isCurrentLesson ? 'aria-current="page"' : ''}>
+           class="${linkClass}"${ariaCurrent}>
           <img src="${videoIcon}" loading="lazy" alt="" class="image-8 ${!isVideo ? 'w-condition-invisible' : ''}">
           <img src="${articleIcon}" loading="lazy" alt="" class="image-8 ${isVideo ? 'w-condition-invisible' : ''}">
           <div class="font-18px">
@@ -315,16 +315,26 @@ async function getFirstLessonInCourse(courseId) {
  * Render content sources
  */
 async function renderContentSources() {
-  if (!currentCourse) return;
+  if (!currentLesson) return;
 
   try {
-    const sources = await window.contentSourcesAPI.getContentSourcesByModule(currentCourse.slug);
+    const sources = await window.contentSourcesAPI.getContentSourcesByLesson(currentLesson.slug);
     const container = document.querySelector('.collection-list-8');
     
     if (!container) return;
 
     // Clear existing items
     container.innerHTML = '';
+
+    // If no sources found, show empty state
+    if (!sources || sources.length === 0) {
+      container.innerHTML = `
+        <div class="w-dyn-empty">
+          <div>No content sources found for this lesson.</div>
+        </div>
+      `;
+      return;
+    }
 
     // Render each content source
     sources.forEach((source) => {
@@ -364,6 +374,15 @@ async function renderContentSources() {
     });
   } catch (error) {
     console.error('Error rendering content sources:', error);
+    // Show empty state on error
+    const container = document.querySelector('.collection-list-8');
+    if (container) {
+      container.innerHTML = `
+        <div class="w-dyn-empty">
+          <div>No content sources found for this lesson.</div>
+        </div>
+      `;
+    }
   }
 }
 
@@ -402,11 +421,9 @@ function initializeFeedbackForm() {
     const textareas = form.querySelectorAll('textarea[name="field-2"]');
     const valuableFeedback = textareas[0]?.value || '';
     const improvementFeedback = textareas[1]?.value || '';
-    const name = form.querySelector('input[name="Name-4"]')?.value || '';
-    const email = form.querySelector('input[name="email-2"]')?.value || '';
 
-    if (!ratingInput || !name || !email) {
-      alert('Please fill in all required fields.');
+    if (!ratingInput) {
+      alert('Please provide a rating.');
       return;
     }
 
@@ -421,9 +438,7 @@ function initializeFeedbackForm() {
         course_id: currentCourse.id,
         rating,
         valuable_feedback: valuableFeedback,
-        improvement_feedback: improvementFeedback,
-        name,
-        email
+        improvement_feedback: improvementFeedback
       });
 
       // Show success

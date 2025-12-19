@@ -9,10 +9,8 @@
  * @param {Object} feedbackData - Feedback data object
  * @param {string} feedbackData.course_id - Course ID
  * @param {number} feedbackData.rating - Rating (1-5)
- * @param {string} feedbackData.valuable_feedback - What user found valuable
- * @param {string} feedbackData.improvement_feedback - Suggestions for improvement
- * @param {string} feedbackData.name - User's name
- * @param {string} feedbackData.email - User's email
+ * @param {string} [feedbackData.valuable_feedback] - What user found valuable (optional)
+ * @param {string} [feedbackData.improvement_feedback] - Suggestions for improvement (optional)
  * @param {string} [feedbackData.user_id] - User ID (optional, if authenticated)
  * @returns {Promise<Object>} - Created feedback record
  */

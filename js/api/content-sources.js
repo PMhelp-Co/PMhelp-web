@@ -83,9 +83,43 @@ async function getContentSourceBySlug(slug) {
   }
 }
 
+/**
+ * Fetch content sources for a specific lesson
+ * @param {string} lessonSlug - Lesson slug (e.g., 'who-are-stakeholders-and-how-to-get-them-on-your-side')
+ * @returns {Promise<Array>} - Array of content source objects
+ */
+async function getContentSourcesByLesson(lessonSlug) {
+  try {
+    // Fetch all content sources
+    const { data, error } = await window.supabase
+      .from('content_sources')
+      .select('*');
+    
+    if (error) throw error;
+
+    // Filter results where lessonSlug is in the lessons field
+    // lessons format: 'lesson-slug1; lesson-slug2; lesson-slug3' or 'lesson-slug1'
+    const filtered = (data || []).filter(source => {
+      if (!source.lessons) return false;
+      
+      // Split by semicolon and trim each slug
+      const lessonSlugs = source.lessons.split(';').map(s => s.trim());
+      
+      // Check if the current lesson slug is in the list
+      return lessonSlugs.includes(lessonSlug);
+    });
+    
+    return filtered;
+  } catch (error) {
+    console.error('Error fetching content sources by lesson:', error);
+    throw error;
+  }
+}
+
 // Export functions to window for global access
 window.contentSourcesAPI = {
   getContentSourcesByModule,
+  getContentSourcesByLesson,
   getAllContentSources,
   getContentSourceBySlug
 };

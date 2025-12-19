@@ -375,11 +375,9 @@ function initializeFeedbackForm() {
     const textareas = form.querySelectorAll('textarea[name="field-2"]');
     const valuableFeedback = textareas[0]?.value || '';
     const improvementFeedback = textareas[1]?.value || '';
-    const name = form.querySelector('input[name="Name-4"]')?.value || '';
-    const email = form.querySelector('input[name="email-2"]')?.value || '';
 
-    if (!ratingInput || !name || !email) {
-      alert('Please fill in all required fields.');
+    if (!ratingInput) {
+      alert('Please provide a rating.');
       return;
     }
 
@@ -394,9 +392,7 @@ function initializeFeedbackForm() {
         course_id: currentCourse.id,
         rating,
         valuable_feedback: valuableFeedback,
-        improvement_feedback: improvementFeedback,
-        name,
-        email
+        improvement_feedback: improvementFeedback
       });
 
       // on success
