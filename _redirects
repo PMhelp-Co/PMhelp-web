@@ -1,5 +1,5 @@
 # Proxy Supabase Auth callbacks to Supabase
 # This allows OAuth providers (Google, etc.) to redirect to /auth/v1/callback
-# on your domain, which Netlify will then proxy to Supabase
+# on your custom domain, which Netlify will then proxy to Supabase
 /auth/*  https://igiemqicokpdyhunldtq.supabase.co/auth/*  200
 
