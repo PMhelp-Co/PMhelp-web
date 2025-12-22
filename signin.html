@@ -86,12 +86,12 @@
           required>
       </div>
       
-      <div>
+      <div style="position: relative;">
         <input
           id="password"
           type="password"
           placeholder="Password"
-          class="flex h-11 w-full border-2 border-gray-300 bg-white px-4 py-2.5 text-base ring-offset-background placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:border-purple-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 md:text-sm rounded-full"
+          class="flex h-11 w-full border-2 border-gray-300 bg-white px-4 py-2.5 pr-12 text-base ring-offset-background placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:border-purple-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 md:text-sm rounded-full"
           required>
       </div>
       
@@ -117,6 +117,7 @@
   </div>
 
   <!-- Auth Script -->
+  <script src="js/utils/password-toggle.js"></script>
   <script src="js/pages/signin-page.js"></script>
 </body>
 </html>

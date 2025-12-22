@@ -313,37 +313,56 @@ const HeaderAuth = {
 
     userMenuContainer.appendChild(userButton);
 
-    // Create dropdown menu
+    // Create dropdown menu (styled to match curriculum)
     const dropdownMenu = document.createElement('div');
     dropdownMenu.className = 'user-dropdown-menu';
-    dropdownMenu.style.cssText = 'position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 200px; z-index: 1000; display: none; overflow: hidden;';
+    dropdownMenu.style.cssText = 'position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--untitled-ui--white); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 220px; z-index: 1000; display: none; overflow: hidden; border: 1px solid var(--elements-webflow-library--neutral--300);';
     
-    // Menu items
+    // Menu items (no icons, matching curriculum style)
     const menuItems = [
-      { text: 'Dashboard', href: 'dashboard.html', icon: '📊' },
-      { text: 'My Progress', href: 'dashboard.html#progress', icon: '📈' },
-      { text: 'Settings', href: 'dashboard.html#settings', icon: '⚙️' },
+      { text: 'Dashboard', href: 'dashboard.html' },
+      { text: 'My Progress', href: 'dashboard.html#progress' },
+      { text: 'Settings', href: 'dashboard.html#settings' },
       { type: 'divider' },
-      { text: 'Sign Out', action: 'signout', icon: '🚪' }
+      { text: 'Sign Out', action: 'signout' }
     ];
 
     menuItems.forEach(item => {
       if (item.type === 'divider') {
         const divider = document.createElement('div');
-        divider.style.cssText = 'height: 1px; background: #e5e7eb; margin: 4px 0;';
+        divider.style.cssText = 'height: 1px; background: var(--elements-webflow-library--neutral--300); margin: 4px 0;';
         dropdownMenu.appendChild(divider);
       } else {
         const menuItem = document.createElement('a');
         menuItem.href = item.href || '#';
-        menuItem.className = 'user-menu-item';
-        menuItem.style.cssText = 'display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #333; text-decoration: none; transition: background 0.2s; font-size: 14px;';
-        menuItem.innerHTML = `<span>${item.icon}</span><span>${item.text}</span>`;
+        menuItem.className = 'user-menu-item content'; // Add 'content' class to match curriculum style
+        menuItem.style.cssText = `
+          display: flex;
+          align-items: center;
+          padding: 12px 24px;
+          color: var(--untitled-ui--primary900);
+          text-decoration: none;
+          transition: all 0.2s;
+          font-size: 18px;
+          font-weight: 700;
+          line-height: 24px;
+          font-family: Satoshi, sans-serif;
+          border-top: 1px solid var(--elements-webflow-library--neutral--300);
+          background-color: var(--untitled-ui--white);
+          cursor: pointer;
+        `;
+        menuItem.textContent = item.text;
         
+        // Match curriculum hover style
         menuItem.addEventListener('mouseenter', () => {
-          menuItem.style.background = '#f3f4f6';
+          menuItem.style.background = 'var(--elements-webflow-library--secondary--color-2)';
+          menuItem.style.color = '#e8e9f0';
+          menuItem.style.transform = 'scale(0.98)';
         });
         menuItem.addEventListener('mouseleave', () => {
-          menuItem.style.background = 'transparent';
+          menuItem.style.background = 'var(--untitled-ui--white)';
+          menuItem.style.color = 'var(--untitled-ui--primary900)';
+          menuItem.style.transform = 'scale(1)';
         });
 
         if (item.action === 'signout') {

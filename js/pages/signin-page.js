@@ -40,6 +40,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const result = await window.Auth.signIn(email, password);
 
     if (result.success) {
+      // Refresh auth state to ensure it's updated before redirect
+      if (window.AuthState?.checkAuthState) {
+        await window.AuthState.checkAuthState();
+      }
+      
+      // Small delay to ensure state is fully updated
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       // Use RouteGuard helper method
       window.RouteGuard?.redirectAfterLogin('index.html');
     } else {
