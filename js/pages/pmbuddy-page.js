@@ -81,6 +81,17 @@ document.addEventListener('DOMContentLoaded', function() {
         b.classList.add('inactive');
       }
     });
+
+    // Show/hide forms
+    if (menteeForm && mentorForm) {
+      if (targetType === 'mentee') {
+        menteeForm.classList.remove('hidden');
+        mentorForm.classList.add('hidden');
+      } else {
+        menteeForm.classList.add('hidden');
+        mentorForm.classList.remove('hidden');
+      }
+    }
   }
 
 
@@ -142,6 +153,22 @@ document.addEventListener('DOMContentLoaded', function() {
     hideMessage();
 
     try {
+      // Check authentication for mentees (mentors don't need to be signed in)
+      if (type === 'mentee') {
+        if (!window.AuthState || !window.AuthState.getIsAuthenticated()) {
+          showMessage('You need to sign in or create an account to continue as a mentee. Please sign in and try again.', true);
+          if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+          }
+          // Redirect to sign in page after showing message
+          setTimeout(() => {
+            window.location.href = 'signin.html?redirect=' + encodeURIComponent(window.location.pathname);
+          }, 2000);
+          return;
+        }
+      }
+
       // Get form data
       const formData = getFormData(form, type);
 
@@ -168,16 +195,31 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset form
         form.reset();
         resetGoalSelection();
-        
-        // Scroll to top to show success message
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Note: scrollToMessage is called inside showMessage()
       } else {
-        showMessage(result.error || 'Failed to submit application. Please try again.', true);
+        // Show friendly error messages instead of raw API errors
+        let errorMessage = result.error || 'Failed to submit application. Please try again.';
+        
+        // Replace technical errors with user-friendly messages
+        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('not authenticated')) {
+          errorMessage = 'You need to sign in to continue. Please sign in and try again.';
+        } else if (errorMessage.includes('JWT') || errorMessage.includes('token')) {
+          errorMessage = 'Your session has expired. Please sign in again and try again.';
+        }
+        
+        showMessage(errorMessage, true);
       }
 
     } catch (error) {
       console.error('Form submission error:', error);
-      showMessage('An unexpected error occurred. Please try again.', true);
+      
+      // Show friendly error messages
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      if (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
+        errorMessage = 'You need to sign in to continue. Please sign in and try again.';
+      }
+      
+      showMessage(errorMessage, true);
     } finally {
       // Re-enable submit button
       if (submitButton) {
@@ -250,10 +292,31 @@ document.addEventListener('DOMContentLoaded', function() {
     messageDiv.className = `pmbuddy-message ${isError ? 'error' : 'success'}`;
     messageDiv.style.display = 'block';
 
+    // Scroll to message after a brief delay to ensure it's rendered
+    setTimeout(() => {
+      scrollToMessage();
+    }, 100);
+
     // Auto-hide after 5 seconds
     setTimeout(() => {
       hideMessage();
     }, 5000);
+  }
+
+  // =====================================================
+  // Scroll to Message
+  // =====================================================
+  function scrollToMessage() {
+    if (!messageDiv) return;
+    
+    // Calculate the position to scroll to (message position minus some offset for better visibility)
+    const messagePosition = messageDiv.getBoundingClientRect().top + window.pageYOffset;
+    const offset = 100; // Offset from top of viewport
+    
+    window.scrollTo({
+      top: messagePosition - offset,
+      behavior: 'smooth'
+    });
   }
 
   // =====================================================

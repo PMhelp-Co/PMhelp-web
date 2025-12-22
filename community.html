@@ -166,6 +166,16 @@
         </a><img src="images/Vectors-Wrapper_5.svg" loading="lazy" width="Auto" height="Auto" alt="" class="vectors-wrapper-16">
       </div><img src="images/Vectors-Wrapper_6.svg" loading="lazy" width="1608" height="325" alt="" class="vectors-wrapper-17">
     </div>
+    <!-- Newsletter Section -->
+    <div style="padding: 60px 0; background-color: #f6f6f6;">
+      <div class="brix---container-default w-container">
+        <div style="text-align: center; max-width: 600px; margin: 0 auto;">
+          <div class="h1" style="font-size: 32px; margin-bottom: 16px;">Stay Updated with PMHelp</div>
+          <div class="font-18px home" style="margin-bottom: 32px; color: var(--systemflow-lite--neutral--80);">Subscribe to our newsletter and get the latest product management tips, industry insights, and exclusive content delivered straight to your inbox.</div>
+          <div id="beehiiv-newsletter-community" style="max-width: 100%; margin: 0 auto;"></div>
+        </div>
+      </div>
+    </div>
     <div class="frame-237769">
       <div class="frame-1171276755">
         <div class="frame-1171276754">
@@ -217,6 +227,13 @@
                 </a>
               </div>
             </div>
+            <div class="frame-237756">
+              <div class="footer-company">Newsletter</div>
+              <div class="frame-237755">
+                <div style="font-size: 14px; color: var(--systemflow-lite--neutral--80); margin-bottom: 12px; max-width: 280px;">Get PM tips straight to your inbox</div>
+                <div id="beehiiv-newsletter-footer" style="max-width: 100%; margin-top: 8px;"></div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="frame-237763">
@@ -240,5 +257,38 @@
   <!-- Auth State & Header -->
   <script src="js/auth-state.js"></script>
   <script src="js/header-auth.js"></script>
+  <!-- Beehiiv Newsletter -->
+  <script async src="https://subscribe-forms.beehiiv.com/embed.js"></script>
+  <script type="text/javascript" async src="https://subscribe-forms.beehiiv.com/attribution.js"></script>
+  <script>
+    // Initialize Beehiiv newsletter forms
+    document.addEventListener('DOMContentLoaded', function() {
+      // Footer newsletter
+      const footerContainer = document.getElementById('beehiiv-newsletter-footer');
+      if (footerContainer) {
+        const iframe = document.createElement('iframe');
+        iframe.src = 'https://subscribe-forms.beehiiv.com/efafab3d-13f7-4ae2-94d9-e353e7305250';
+        iframe.className = 'beehiiv-embed';
+        iframe.setAttribute('data-test-id', 'beehiiv-embed');
+        iframe.frameBorder = '0';
+        iframe.scrolling = 'no';
+        iframe.style.cssText = 'width: 100%; height: auto; margin: 0; border-radius: 0px; background-color: transparent; box-shadow: 0 0 #0000; max-width: 100%;';
+        footerContainer.appendChild(iframe);
+      }
+      
+      // Community page prominent newsletter
+      const communityContainer = document.getElementById('beehiiv-newsletter-community');
+      if (communityContainer) {
+        const iframe = document.createElement('iframe');
+        iframe.src = 'https://subscribe-forms.beehiiv.com/efafab3d-13f7-4ae2-94d9-e353e7305250';
+        iframe.className = 'beehiiv-embed';
+        iframe.setAttribute('data-test-id', 'beehiiv-embed');
+        iframe.frameBorder = '0';
+        iframe.scrolling = 'no';
+        iframe.style.cssText = 'width: 100%; height: auto; margin: 0; border-radius: 8px; background-color: transparent; box-shadow: 0 0 #0000; max-width: 500px;';
+        communityContainer.appendChild(iframe);
+      }
+    });
+  </script>
 </body>
 </html>

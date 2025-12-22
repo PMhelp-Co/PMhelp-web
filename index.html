@@ -521,6 +521,13 @@
                 </a>
               </div>
             </div>
+            <div class="frame-237756">
+              <div class="footer-company">Newsletter</div>
+              <div class="frame-237755">
+                <div style="font-size: 14px; color: var(--systemflow-lite--neutral--80); margin-bottom: 12px; max-width: 280px;">Get PM tips straight to your inbox</div>
+                <div id="beehiiv-newsletter-footer" style="max-width: 100%; margin-top: 8px;"></div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="frame-237763">
@@ -570,5 +577,24 @@
     })();
   }
 </script>
+  <!-- Beehiiv Newsletter -->
+  <script async src="https://subscribe-forms.beehiiv.com/embed.js"></script>
+  <script type="text/javascript" async src="https://subscribe-forms.beehiiv.com/attribution.js"></script>
+  <script>
+    // Initialize Beehiiv newsletter form in footer
+    document.addEventListener('DOMContentLoaded', function() {
+      const footerContainer = document.getElementById('beehiiv-newsletter-footer');
+      if (footerContainer) {
+        const iframe = document.createElement('iframe');
+        iframe.src = 'https://subscribe-forms.beehiiv.com/efafab3d-13f7-4ae2-94d9-e353e7305250';
+        iframe.className = 'beehiiv-embed';
+        iframe.setAttribute('data-test-id', 'beehiiv-embed');
+        iframe.frameBorder = '0';
+        iframe.scrolling = 'no';
+        iframe.style.cssText = 'width: 100%; height: auto; margin: 0; border-radius: 0px; background-color: transparent; box-shadow: 0 0 #0000; max-width: 100%;';
+        footerContainer.appendChild(iframe);
+      }
+    });
+  </script>
 </body>
 </html>
