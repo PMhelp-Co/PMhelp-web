@@ -41,37 +41,48 @@ document.addEventListener('DOMContentLoaded', function() {
     formToggleButtons.forEach(btn => {
       btn.addEventListener('click', function() {
         const targetType = this.dataset.type; // 'mentee' or 'mentor'
+        const isHeroButton = this.classList.contains('hero-cta-btn');
         
-        if (targetType === activeFormType.current) return;
-
-        // Update active state
-        activeFormType.current = targetType;
-        
-        // Update button styles
-        formToggleButtons.forEach(b => {
-          if (b.dataset.type === targetType) {
-            b.classList.add('active');
-            b.classList.remove('inactive');
-          } else {
-            b.classList.remove('active');
-            b.classList.add('inactive');
+        // If this is a hero button, scroll to forms section first
+        if (isHeroButton) {
+          const formsSection = document.getElementById('interest-forms');
+          if (formsSection) {
+            formsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Wait a bit for scroll to start, then toggle form
+            setTimeout(() => {
+              toggleForm(targetType);
+            }, 300);
+            return;
           }
-        });
-
-        // Show/hide forms
-        if (targetType === 'mentee') {
-          menteeForm?.classList.remove('hidden');
-          mentorForm?.classList.add('hidden');
-        } else {
-          menteeForm?.classList.add('hidden');
-          mentorForm?.classList.remove('hidden');
         }
-
-        // Reset goal selection when switching forms
-        resetGoalSelection();
+        
+        // Regular form toggle (no scrolling)
+        toggleForm(targetType);
       });
     });
   }
+
+  // =====================================================
+  // Toggle Form Helper
+  // =====================================================
+  function toggleForm(targetType) {
+    if (targetType === activeFormType.current) return;
+
+    // Update active state
+    activeFormType.current = targetType;
+    
+    // Update button styles
+    formToggleButtons.forEach(b => {
+      if (b.dataset.type === targetType) {
+        b.classList.add('active');
+        b.classList.remove('inactive');
+      } else {
+        b.classList.remove('active');
+        b.classList.add('inactive');
+      }
+    });
+  }
+
 
   // =====================================================
   // Goal Selection (Multi-select buttons)
