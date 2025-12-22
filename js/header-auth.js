@@ -343,12 +343,12 @@ const HeaderAuth = {
           color: var(--untitled-ui--primary900);
           text-decoration: none;
           transition: all 0.2s;
-          font-size: 18px;
+          font-size: 13px;
           font-weight: 700;
           line-height: 24px;
           font-family: Satoshi, sans-serif;
-          border-top: 1px solid var(--elements-webflow-library--neutral--300);
-          background-color: var(--untitled-ui--white);
+          border-top: 1px solid rgb(213, 213, 213));
+          background-color: #f6f6f6;
           cursor: pointer;
         `;
         menuItem.textContent = item.text;
@@ -356,11 +356,11 @@ const HeaderAuth = {
         // Match curriculum hover style
         menuItem.addEventListener('mouseenter', () => {
           menuItem.style.background = 'var(--elements-webflow-library--secondary--color-2)';
-          menuItem.style.color = '#e8e9f0';
+          menuItem.style.color = 'var(--untitled-ui--primary600)';
           menuItem.style.transform = 'scale(0.98)';
         });
         menuItem.addEventListener('mouseleave', () => {
-          menuItem.style.background = 'var(--untitled-ui--white)';
+          menuItem.style.background = '#f6f6f6';
           menuItem.style.color = 'var(--untitled-ui--primary900)';
           menuItem.style.transform = 'scale(1)';
         });

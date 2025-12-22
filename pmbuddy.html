@@ -37,30 +37,34 @@
       text-align: center;
     }
     .pmbuddy-stat-number {
-      font-size: 32px;
-      font-weight: 700;
+      font-size: 24px;
+  
       color: var(--untitled-ui--primary900);
       margin-bottom: 8px;
+    font-family: Satoshi, sans-serif;
+    font-weight: 900;
+    line-height: 90%;
     }
     .pmbuddy-stat-label {
       font-size: 14px;
       color: var(--systemflow-lite--neutral--80);
     }
     .pmbuddy-form-toggle {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 32px;
-      background: white;
-      padding: 4px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-    }
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 32px;
+  background: white;
+  padding: 4px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
     .form-toggle-btn {
-      flex: 1;
       padding: 10px 20px;
       border: none;
       background: transparent;
@@ -76,7 +80,7 @@
       color: white;
     }
     .form-toggle-btn.inactive:hover {
-      background: #f3f4f6;
+      background: #e9eaec;
     }
     .pmbuddy-form-container {
       max-width: 600px;
@@ -94,7 +98,7 @@
       font-weight: 700;
       text-align: center;
       margin-bottom: 8px;
-      color: var(--untitled-ui--primary900);
+      color: rgb(57, 57, 57);
     }
     .pmbuddy-form-subtitle {
       text-align: center;
@@ -201,19 +205,37 @@
       justify-content: center;
       align-items: center;
       gap: 32px;
-      margin: 48px 0;
-      opacity: 0.7;
+      margin: 0;
     }
-    .pmbuddy-company-logo {
-      height: 40px;
-      width: auto;
-      object-fit: contain;
-      filter: grayscale(100%);
+    @media (min-width: 768px) {
+      .pmbuddy-companies {
+        gap: 48px;
+      }
+    }
+    .pmbuddy-company-group {
       transition: all 0.3s;
     }
-    .pmbuddy-company-logo:hover {
-      filter: grayscale(0%);
+    .pmbuddy-company-group:hover {
       transform: scale(1.05);
+    }
+    .pmbuddy-company-logo {
+      height: 56px;
+      width: auto;
+      max-width: 140px;
+      object-fit: contain;
+      opacity: 0.7;
+      transition: opacity 0.3s;
+    }
+    .pmbuddy-company-group:hover .pmbuddy-company-logo {
+      opacity: 1;
+    }
+    .pmbuddy-company-logo.small {
+      height: 48px;
+      max-width: 120px;
+    }
+    .pmbuddy-company-logo.xsmall {
+      height: 40px;
+      max-width: 100px;
     }
     @media (max-width: 767px) {
       .pmbuddy-goals-grid {
@@ -301,27 +323,42 @@
     </section>
 
     <!-- Companies Section -->
-    <section style="padding: 40px 0; background: white;">
+    <section style="padding: 40px 0;background-color: #f6f6f6;">
       <div class="brix---container-default w-container">
         <div style="text-align: center; margin-bottom: 32px;">
-          <div class="font-18px" style="color: var(--systemflow-lite--neutral--80); font-size: 14px; font-weight: 500;">Our mentors have worked in these companies</div>
+          <h3 style="color: var(--systemflow-lite--neutral--80); font-size: 14px; font-weight: 500; margin: 0; font-family: Satoshi, sans-serif;">Our mentors have worked in these companies</h3>
         </div>
         <div class="pmbuddy-companies">
-          <!-- Company logos would go here - using placeholder text for now -->
-          <div style="color: #999; font-size: 14px;">Microsoft</div>
-          <div style="color: #999; font-size: 14px;">Revolut</div>
-          <div style="color: #999; font-size: 14px;">GoCardless</div>
-          <div style="color: #999; font-size: 14px;">Binance</div>
-          <div style="color: #999; font-size: 14px;">Bloomberg</div>
-          <div style="color: #999; font-size: 14px;">Moniepoint</div>
-          <div style="color: #999; font-size: 14px;">Visa</div>
-          <div style="color: #999; font-size: 14px;">NHS</div>
+          <div class="pmbuddy-company-group">
+            <img src="images/company-microsoft.png" alt="Microsoft" class="pmbuddy-company-logo" onerror="this.style.display='none'">
+          </div>
+          <div class="pmbuddy-company-group">
+            <img src="images/company-revolut.png" alt="Revolut" class="pmbuddy-company-logo small" onerror="this.style.display='none'">
+          </div>
+          <div class="pmbuddy-company-group">
+            <img src="images/company-gocardless.png" alt="GoCardless" class="pmbuddy-company-logo small" onerror="this.style.display='none'">
+          </div>
+          <div class="pmbuddy-company-group">
+            <img src="images/company-binance.png" alt="Binance" class="pmbuddy-company-logo small" onerror="this.style.display='none'">
+          </div>
+          <div class="pmbuddy-company-group">
+            <img src="images/company-bloomberg.png" alt="Bloomberg" class="pmbuddy-company-logo" onerror="this.style.display='none'">
+          </div>
+          <div class="pmbuddy-company-group">
+            <img src="images/company-moniepoint.png" alt="Moniepoint" class="pmbuddy-company-logo xsmall" onerror="this.style.display='none'">
+          </div>
+          <div class="pmbuddy-company-group">
+            <img src="images/company-visa.png" alt="Visa" class="pmbuddy-company-logo xsmall" onerror="this.style.display='none'">
+          </div>
+          <div class="pmbuddy-company-group">
+            <img src="images/company-nhs.png" alt="NHS" class="pmbuddy-company-logo xsmall" onerror="this.style.display='none'">
+          </div>
         </div>
       </div>
     </section>
 
     <!-- Forms Section -->
-    <section id="interest-forms" style="padding: 60px 0; background: #fefbf5;">
+    <section id="interest-forms" style="padding: 60px 0; background-color: #f6f6f6;">
       <div class="brix---container-default w-container">
         <div style="text-align: center; margin-bottom: 32px;">
           <div class="h1" style="font-size: 32px; margin-bottom: 16px;">Everyone Needs a Buddy 😎</div>
