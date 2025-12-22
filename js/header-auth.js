@@ -330,7 +330,7 @@ const HeaderAuth = {
     menuItems.forEach(item => {
       if (item.type === 'divider') {
         const divider = document.createElement('div');
-        divider.style.cssText = 'height: 1px; background: var(--elements-webflow-library--neutral--300); margin: 4px 0;';
+        divider.style.cssText = 'height: 1px; background: var(--elements-webflow-library--neutral--300); margin: 1px 0;';
         dropdownMenu.appendChild(divider);
       } else {
         const menuItem = document.createElement('a');
