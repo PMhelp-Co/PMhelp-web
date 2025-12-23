@@ -319,11 +319,8 @@ const HeaderAuth = {
     dropdownMenu.style.cssText = 'position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--untitled-ui--white); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 220px; z-index: 1000; display: none; overflow: hidden; border: 1px solid var(--elements-webflow-library--neutral--300);';
     
     // Menu items (no icons, matching curriculum style)
+    // Only showing Sign Out for now - other items hidden until features are ready
     const menuItems = [
-      { text: 'Dashboard', href: 'dashboard.html' },
-      { text: 'My Progress', href: 'dashboard.html#progress' },
-      { text: 'Settings', href: 'dashboard.html#settings' },
-      { type: 'divider' },
       { text: 'Sign Out', action: 'signout' }
     ];
 
