@@ -443,6 +443,18 @@ async function initializeCourseDetailPage() {
       return;
     }
     
+    // Track analytics - page view
+    if (window.analytics && currentCourse) {
+      try {
+        window.analytics.trackPageView(
+          `/courses/${courseSlug}`,
+          `${currentCourse.title} Course`
+        );
+      } catch (error) {
+        console.warn('Error tracking analytics:', error);
+      }
+    }
+
     // Render all sections
     renderCourseTitle();
     renderCourseAbout();
@@ -454,6 +466,38 @@ async function initializeCourseDetailPage() {
     
     // Initialize feedback form
     initializeFeedbackForm();
+
+    // Track course interactions (start/continue buttons)
+    if (window.analytics && currentCourse) {
+      try {
+        const startButtons = document.querySelectorAll('[data-action="start-course"], [data-action="continue-course"]');
+        startButtons.forEach(button => {
+          button.addEventListener('click', async () => {
+            const userId = await window.analytics.getCurrentUserId();
+            const action = button.getAttribute('data-action') === 'start-course' ? 'start' : 'continue';
+            window.analytics.trackCourseInteraction(
+              currentCourse.id,
+              currentCourse.title,
+              action,
+              userId
+            );
+          });
+        });
+
+        // Track lesson link clicks
+        const lessonLinks = document.querySelectorAll('a[href*="detail_course-lesson.html"]');
+        lessonLinks.forEach(link => {
+          link.addEventListener('click', () => {
+            window.analytics.trackEvent('lesson_link_clicked', {
+              course_id: currentCourse.id,
+              course_name: currentCourse.title
+            });
+          });
+        });
+      } catch (error) {
+        console.warn('Error setting up analytics tracking:', error);
+      }
+    }
     
   } catch (error) {
     console.error('Error initializing course detail page:', error);

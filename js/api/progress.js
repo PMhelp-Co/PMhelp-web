@@ -30,6 +30,8 @@ async function markLessonComplete(courseId, lessonId) {
       throw checkError; // Re-throw if it's not a "no rows" error
     }
 
+    const isNewCompletion = !existing || !existing.completed_at;
+
     if (existing) {
       // Update existing progress
       const { data, error } = await window.supabase
@@ -44,6 +46,40 @@ async function markLessonComplete(courseId, lessonId) {
         .single();
 
       if (error) throw error;
+
+      // Track analytics if this is a new completion
+      if (isNewCompletion && window.analytics) {
+        try {
+          const [courseData, lessonData] = await Promise.all([
+            window.supabase.from('courses').select('title').eq('id', courseId).single(),
+            window.supabase.from('lessons').select('title').eq('id', lessonId).single()
+          ]);
+          const courseName = courseData?.data?.title || 'Unknown Course';
+          const lessonName = lessonData?.data?.title || 'Unknown Lesson';
+          window.analytics.trackLessonCompleted(courseId, lessonId, courseName, lessonName, user.id);
+
+          // Check if course is complete
+          const progress = await getCourseProgress(courseId);
+          if (progress.completionPercentage === 100) {
+            window.analytics.trackCourseCompleted(courseId, courseName, 100, user.id);
+          } else {
+            // Check for milestones
+            const milestones = [25, 50, 75];
+            const previousPercentage = progress.totalLessons > 0 
+              ? Math.round(((progress.completedCount - 1) / progress.totalLessons) * 100)
+              : 0;
+            for (const milestone of milestones) {
+              if (previousPercentage < milestone && progress.completionPercentage >= milestone) {
+                window.analytics.trackProgressMilestone(courseId, `${milestone}%`, progress.completionPercentage, user.id);
+                break;
+              }
+            }
+          }
+        } catch (analyticsError) {
+          console.warn('Error tracking analytics:', analyticsError);
+        }
+      }
+
       return data;
     } else {
       // Create new progress record
@@ -60,6 +96,37 @@ async function markLessonComplete(courseId, lessonId) {
         .single();
 
       if (error) throw error;
+
+      // Track analytics
+      if (window.analytics) {
+        try {
+          const [courseData, lessonData] = await Promise.all([
+            window.supabase.from('courses').select('title').eq('id', courseId).single(),
+            window.supabase.from('lessons').select('title').eq('id', lessonId).single()
+          ]);
+          const courseName = courseData?.data?.title || 'Unknown Course';
+          const lessonName = lessonData?.data?.title || 'Unknown Lesson';
+          window.analytics.trackLessonCompleted(courseId, lessonId, courseName, lessonName, user.id);
+
+          // Check if course is complete
+          const progress = await getCourseProgress(courseId);
+          if (progress.completionPercentage === 100) {
+            window.analytics.trackCourseCompleted(courseId, courseName, 100, user.id);
+          } else {
+            // Check for milestones
+            const milestones = [25, 50, 75];
+            for (const milestone of milestones) {
+              if (progress.completionPercentage >= milestone) {
+                window.analytics.trackProgressMilestone(courseId, `${milestone}%`, progress.completionPercentage, user.id);
+                break;
+              }
+            }
+          }
+        } catch (analyticsError) {
+          console.warn('Error tracking analytics:', analyticsError);
+        }
+      }
+
       return data;
     }
   } catch (error) {

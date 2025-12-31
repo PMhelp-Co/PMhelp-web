@@ -494,6 +494,24 @@ async function initializeLessonDetailPage() {
       return;
     }
 
+    // Track analytics - page view and lesson viewed
+    if (window.analytics && currentCourse && currentLesson) {
+      try {
+        window.analytics.trackPageView(
+          `/courses/${courseSlug}/lessons/${lessonSlug}`,
+          `${currentLesson.title} - ${currentCourse.title}`
+        );
+        window.analytics.trackEvent('lesson_viewed', {
+          course_id: currentCourse.id,
+          course_name: currentCourse.title,
+          lesson_id: currentLesson.id,
+          lesson_name: currentLesson.title
+        });
+      } catch (error) {
+        console.warn('Error tracking analytics:', error);
+      }
+    }
+
     // Render all sections
     renderBreadcrumb();
     renderCourseTitle();

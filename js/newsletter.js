@@ -18,6 +18,11 @@ function handleNewsletterSubscribe(event) {
   submitButton.disabled = true;
   emailInput.disabled = true;
   
+  // Track newsletter subscription
+  if (window.analytics) {
+    window.analytics.trackNewsletterSubscribed(email);
+  }
+
   // REPLACE THIS URL with your actual Beehiiv magic link from dashboard
   const magicLink = `https://magic.beehiiv.com/v1/cb224408-5d64-49b5-bf66-6bec54e0a057?email=${encodeURIComponent(email)}`;
   
