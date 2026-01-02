@@ -484,6 +484,52 @@ async function initializeCourseDetailPage() {
           });
         });
 
+        // Track "Enroll Now" button click
+        const enrollButton = document.querySelector('.enroll-background');
+        if (enrollButton) {
+          enrollButton.addEventListener('click', async () => {
+            try {
+              const userId = await window.analytics.getCurrentUserId();
+              
+              // Check if user has already started the course
+              let isNewEnrollment = true;
+              if (userId && window.progressAPI) {
+                try {
+                  const progress = await window.progressAPI.getCourseProgress(currentCourse.id);
+                  // If user has any progress, it's not a new enrollment
+                  isNewEnrollment = progress.completedCount === 0 && progress.completionPercentage === 0;
+                } catch (error) {
+                  // If we can't check progress, assume it's a new enrollment
+                  console.warn('[ANALYTICS] Could not check course progress:', error);
+                }
+              }
+              
+              // Track enrollment (only for new enrollments)
+              if (isNewEnrollment) {
+                console.log('[ANALYTICS] 📚 Tracking course enrollment');
+                window.analytics.trackCourseEnrolled(
+                  currentCourse.id,
+                  currentCourse.title,
+                  userId
+                );
+              } else {
+                console.log('[ANALYTICS] ℹ️ User already enrolled - skipping enrollment tracking');
+              }
+              
+              // Also track course interaction
+              const action = isNewEnrollment ? 'start' : 'continue';
+              window.analytics.trackCourseInteraction(
+                currentCourse.id,
+                currentCourse.title,
+                action,
+                userId
+              );
+            } catch (error) {
+              console.error('[ANALYTICS] ❌ Error tracking enrollment:', error);
+            }
+          });
+        }
+
         // Track lesson link clicks
         const lessonLinks = document.querySelectorAll('a[href*="detail_course-lesson.html"]');
         lessonLinks.forEach(link => {
