@@ -10,7 +10,9 @@ const ANALYTICS_ID = 'G-F1EPZTB3XC';
  * Initialize Google Analytics
  */
 function initAnalytics() {
+  console.log('[ANALYTICS] 🚀 Initializing Google Analytics...');
   if (window.dataLayer && window.gtag) {
+    console.log('[ANALYTICS] ✅ Analytics already initialized');
     return; // Already initialized
   }
 
@@ -26,6 +28,7 @@ function initAnalytics() {
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${ANALYTICS_ID}`;
   document.head.appendChild(script);
+  console.log('[ANALYTICS] ✅ Analytics initialization complete');
 }
 
 /**
@@ -34,8 +37,9 @@ function initAnalytics() {
  * @param {string} title - Page title
  */
 function trackPageView(path, title) {
+  console.log('[ANALYTICS] 📄 Tracking page view:', { path, title });
   if (typeof gtag === 'undefined') {
-    console.warn('Analytics not initialized. Page view not tracked.');
+    console.warn('[ANALYTICS] ⚠️ Analytics not initialized. Page view not tracked.');
     return;
   }
   try {
@@ -43,8 +47,9 @@ function trackPageView(path, title) {
       page_path: path,
       page_title: title
     });
+    console.log('[ANALYTICS] ✅ Page view tracked:', { path, title });
   } catch (error) {
-    console.error('Error tracking page view:', error);
+    console.error('[ANALYTICS] ❌ Error tracking page view:', error);
   }
 }
 
@@ -55,13 +60,18 @@ function trackPageView(path, title) {
  */
 function trackEvent(eventName, eventParams = {}) {
   if (typeof gtag === 'undefined') {
-    console.warn('Analytics not initialized. Event not tracked.');
+    console.warn('[ANALYTICS] ⚠️ Analytics not initialized. Event not tracked.');
     return;
   }
   try {
+    console.log('[ANALYTICS] 📊 Tracking event:', eventName, eventParams);
     gtag('event', eventName, eventParams);
+    console.log('[ANALYTICS] ✅ Event tracked successfully:', eventName);
+    
+    // Log to dataLayer for debugging
+    console.log('[ANALYTICS] 📋 Latest dataLayer entry:', window.dataLayer?.slice(-1));
   } catch (error) {
-    console.error('Error tracking event:', error);
+    console.error('[ANALYTICS] ❌ Error tracking event:', error);
   }
 }
 
@@ -69,6 +79,13 @@ function trackEvent(eventName, eventParams = {}) {
  * Track lesson completion
  */
 function trackLessonCompleted(courseId, lessonId, courseName, lessonName, userId) {
+  console.log('[ANALYTICS] 🎓 Tracking lesson completion:', {
+    courseId,
+    lessonId,
+    courseName,
+    lessonName,
+    userId: userId ? 'provided' : 'missing'
+  });
   const hashedUserId = hashUserId(userId);
   trackEvent('lesson_completed', {
     course_id: courseId,
@@ -83,6 +100,12 @@ function trackLessonCompleted(courseId, lessonId, courseName, lessonName, userId
  * Track course completion
  */
 function trackCourseCompleted(courseId, courseName, completionPercentage, userId) {
+  console.log('[ANALYTICS] 🎉 Tracking course completion:', {
+    courseId,
+    courseName,
+    completionPercentage,
+    userId: userId ? 'provided' : 'missing'
+  });
   const hashedUserId = hashUserId(userId);
   trackEvent('course_completed', {
     course_id: courseId,
@@ -108,6 +131,12 @@ function trackCourseEnrolled(courseId, courseName, userId) {
  * Track progress milestone (25%, 50%, 75%)
  */
 function trackProgressMilestone(courseId, milestone, completionPercentage, userId) {
+  console.log('[ANALYTICS] 🎯 Tracking progress milestone:', {
+    courseId,
+    milestone,
+    completionPercentage,
+    userId: userId ? 'provided' : 'missing'
+  });
   const hashedUserId = hashUserId(userId);
   trackEvent('progress_milestone', {
     course_id: courseId,
