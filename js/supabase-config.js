@@ -5,9 +5,8 @@
 // =====================================================
 
 // Supabase configuration
-// TODO: Replace with your actual Supabase project URL and anon key
 const SUPABASE_URL = "https://igiemqicokpdyhunldtq.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_ThX8P9WuihzoUTbbt14_-w_dCJSTnza";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnaWVtcWljb2twZHlodW5sZHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5MzUyODMsImV4cCI6MjA4MDUxMTI4M30.ofycauABgKV1kO9npWlaN9Hk6SZXtQm8F3lVro0xK9w";
 
 // Initialize Supabase client globally
 // Note: Requires Supabase CDN to be loaded first in HTML
@@ -36,4 +35,3 @@ if (typeof supabase !== 'undefined') {
 } else {
   console.error('Supabase CDN not loaded. Make sure to include the Supabase script before this file.');
 }
-
