@@ -261,8 +261,8 @@ const ResourcesMenu = {
 
     // Create menu items that will be inserted into nav
     const menuItems = [
-      { text: 'Reports', href: 'reports.html' },
-      { text: 'Blog', href: 'blog.html' }
+      { text: 'Blog', href: 'blog.html' },
+      { text: 'Reports', href: 'reports.html' }
     ];
 
     this.mobileMenuItems = menuItems.map((item, index) => {
@@ -326,8 +326,8 @@ const ResourcesMenu = {
 
     // Menu items
     const menuItems = [
-      { text: 'Reports', href: 'reports.html' },
-      { text: 'Blog', href: 'blog.html' }
+      { text: 'Blog', href: 'blog.html' },
+      { text: 'Reports', href: 'reports.html' }
     ];
 
     menuItems.forEach((item, index) => {
