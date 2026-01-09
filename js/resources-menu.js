@@ -21,11 +21,18 @@ const ResourcesMenu = {
   init() {
     console.log('[RESOURCES MENU] 🚀 Initializing Resources menu...');
     
-    // Wait for DOM to be ready
+    // Wait for DOM and other scripts (like Webflow) to be ready
+    const initializeMenu = () => {
+      // Add a small delay to ensure Webflow and other scripts have initialized
+      setTimeout(() => {
+        this.createMenu();
+      }, 100);
+    };
+    
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => this.createMenu());
+      document.addEventListener('DOMContentLoaded', initializeMenu);
     } else {
-      this.createMenu();
+      initializeMenu();
     }
 
     // Handle window resize to switch between mobile/desktop
@@ -104,8 +111,27 @@ const ResourcesMenu = {
     }
 
     // Find the Blog link OR existing Resources container to replace
+    // Handle both localhost (blog.html) and production (/blog) patterns
+    // Also check by text content as fallback
     let blogLink = Array.from(navMenu.children).find(
-      link => link.href && link.href.includes('blog.html')
+      link => {
+        // Skip if it's already the Resources container
+        if (link.classList && link.classList.contains('resources-menu-container')) {
+          return false;
+        }
+        // Skip if it's a mobile menu item
+        if (link.classList && link.classList.contains('resources-menu-item-mobile')) {
+          return false;
+        }
+        
+        // Check by href (works for anchor tags)
+        const href = (link.href || '').toLowerCase();
+        // Check by text content (works for any element)
+        const text = (link.textContent || link.innerText || '').trim().toLowerCase();
+        
+        return (href.includes('blog.html') || href.includes('/blog') || href.includes('blog')) ||
+               (text === 'blog');
+      }
     );
     
     // If Blog link not found, look for existing Resources container (after resize)
@@ -117,6 +143,12 @@ const ResourcesMenu = {
 
     if (!blogLink) {
       console.warn('[RESOURCES MENU] ⚠️ Blog link or Resources container not found');
+      console.warn('[RESOURCES MENU] Available nav items:', Array.from(navMenu.children).map(el => ({
+        tag: el.tagName,
+        href: el.href,
+        textContent: el.textContent?.trim(),
+        className: el.className
+      })));
       return;
     }
 
@@ -196,8 +228,27 @@ const ResourcesMenu = {
     fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'resources-menu.js:130',message:'createMobileMenu started',data:{navMenuChildren:navMenu.children.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
     // #endregion
     // Find position of PM Buddy link (after Resources)
+    // Handle both localhost (pmbuddy.html) and production (/pmbuddy) patterns
+    // Also check by text content as fallback
     const pmBuddyLink = Array.from(navMenu.children).find(
-      link => link.href && link.href.includes('pmbuddy.html')
+      link => {
+        // Skip if it's the Resources container
+        if (link.classList && link.classList.contains('resources-menu-container')) {
+          return false;
+        }
+        // Skip if it's a mobile menu item
+        if (link.classList && link.classList.contains('resources-menu-item-mobile')) {
+          return false;
+        }
+        
+        // Check by href (works for anchor tags)
+        const href = (link.href || '').toLowerCase();
+        // Check by text content (works for any element)
+        const text = (link.textContent || link.innerText || '').trim().toLowerCase();
+        
+        return (href.includes('pmbuddy.html') || href.includes('/pmbuddy') || href.includes('pmbuddy')) ||
+               (text.includes('pm buddy') || text.includes('pmbuddy'));
+      }
     );
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'resources-menu.js:135',message:'PM Buddy link search',data:{found:!!pmBuddyLink},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
