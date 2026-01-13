@@ -121,7 +121,13 @@ const RouteGuard = {
   // Redirect After Login
   // =====================================================
   redirectAfterLogin(defaultUrl = 'index.html') {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/route-guard.js:123',message:'redirectAfterLogin called',data:{defaultUrl,currentHref:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+    // #endregion
     const redirectUrl = this.getRedirectUrl();
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/route-guard.js:125',message:'About to redirect',data:{redirectUrl:redirectUrl||defaultUrl,finalUrl:redirectUrl||defaultUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+    // #endregion
     window.location.href = redirectUrl || defaultUrl;
   },
 

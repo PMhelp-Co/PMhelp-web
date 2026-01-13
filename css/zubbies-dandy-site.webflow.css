@@ -14177,8 +14177,7 @@ li {
   align-items: center;
   gap: 12px;
   padding: 16px 32px;
-  background-color: rgba(111, 86, 217, 0.75); /* Semi-transparent purple */
-  
+  background-color:  rgba(116, 33, 168, 1);
   color: var(--untitled-ui--white);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
@@ -14194,9 +14193,9 @@ li {
 }
 
 .report-detail-download-btn:hover {
-  background-color: rgba(105, 65, 198, 0.9); /* Slightly more opaque on hover */
+  background-color:  rgba(116, 33, 168, 0.9);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(111, 86, 217, 0.3);
+  box-shadow: 0 4px 12px rgba(116, 33, 168, 0.3);
 }
 
 .report-detail-download-btn:active {

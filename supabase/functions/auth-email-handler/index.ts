@@ -4,7 +4,9 @@ import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 import { Resend } from "npm:resend";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "PMHelp <noreply@pmhelp.co>";
+// Default to Resend test domain if RESEND_FROM_EMAIL not set or domain not verified
+// For production: Verify your domain at https://resend.com/domains and use: "PMHelp <noreply@pmhelp.co>"
+const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "PMHelp <onboarding@resend.dev>";
 const SEND_EMAIL_HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
 const SITE_URL = Deno.env.get("SIT_URL") || "https://transcendent-sprinkles-8cd7b5.netlify.app";
 const SUPABASE_URL = Deno.env.get("PROJECT_URL") || "https://igiemqicokpdyhunldtq.supabase.co";
@@ -39,28 +41,59 @@ interface User {
 Deno.serve(async (req) => {
   console.log("=== AUTH EMAIL HANDLER CALLED ===");
   console.log("Timestamp:", new Date().toISOString());
+  
+  // #region agent log
+  console.log("Environment check:", {
+    hasResendKey: !!RESEND_API_KEY,
+    hasHookSecret: !!SEND_EMAIL_HOOK_SECRET,
+    siteUrl: SITE_URL,
+    supabaseUrl: SUPABASE_URL,
+    resendFromEmail: RESEND_FROM_EMAIL,
+    hookSecretLength: hookSecret.length
+  });
+  // #endregion
 
   try {
     // Only allow POST requests
     if (req.method !== "POST") {
+      // #region agent log
+      console.log("Method not allowed:", req.method);
+      // #endregion
       return new Response("Method not allowed", { status: 405 });
     }
 
     // Get raw payload as text (needed for webhook verification)
     const payload = await req.text();
     const headers = Object.fromEntries(req.headers);
+    
+    // #region agent log
+    console.log("Payload received - length:", payload.length);
+    console.log("Payload preview (first 200 chars):", payload.substring(0, 200));
+    console.log("Headers keys:", Object.keys(headers));
+    console.log("Has svix-signature:", !!headers["svix-signature"]);
+    console.log("Has svix-timestamp:", !!headers["svix-timestamp"]);
+    console.log("Has svix-id:", !!headers["svix-id"]);
+    // #endregion
 
     console.log("Request method:", req.method);
     console.log("Headers received:", Object.keys(headers));
+    // #region agent log
+    console.log("Payload length:", payload.length);
+    console.log("Has webhook signature header:", !!headers["svix-signature"]);
+    // #endregion
 
     // Verify webhook secret is configured
     if (!SEND_EMAIL_HOOK_SECRET || !hookSecret) {
       console.error("❌ SEND_EMAIL_HOOK_SECRET not configured");
+      // #region agent log
+      console.error("SEND_EMAIL_HOOK_SECRET value:", SEND_EMAIL_HOOK_SECRET ? "exists but empty or invalid" : "undefined");
+      console.error("hookSecret value:", hookSecret ? "exists" : "undefined/empty");
+      // #endregion
       return new Response(
         JSON.stringify({
           error: {
             http_code: 500,
-            message: "Webhook secret not configured",
+            message: "Webhook secret not configured. Please set SEND_EMAIL_HOOK_SECRET environment variable in Supabase dashboard.",
           },
         }),
         {
@@ -71,16 +104,38 @@ Deno.serve(async (req) => {
     }
 
     // Verify webhook signature using standardwebhooks
+    // #region agent log
+    console.log("Attempting webhook verification with secret length:", hookSecret.length);
+    // #endregion
     const wh = new Webhook(hookSecret);
     let verifiedData: { user: User; email_data: EmailData };
 
     try {
+      // #region agent log
+      console.log("Calling wh.verify()...");
+      // #endregion
       verifiedData = wh.verify(payload, headers) as {
         user: User;
         email_data: EmailData;
       };
+      // #region agent log
+      console.log("✅ Webhook signature verified successfully");
+      console.log("Verified data structure:", {
+        hasUser: !!verifiedData.user,
+        hasEmailData: !!verifiedData.email_data,
+        userEmail: verifiedData.user?.email,
+        emailActionType: verifiedData.email_data?.email_action_type
+      });
+      // #endregion
       console.log("✅ Webhook signature verified");
     } catch (error) {
+      // #region agent log
+      console.error("❌ Webhook verification failed:", {
+        errorName: error?.name,
+        errorMessage: error?.message,
+        errorStack: error?.stack?.substring(0, 300)
+      });
+      // #endregion
       console.error("❌ Webhook verification failed:", error);
       return new Response(
         JSON.stringify({
@@ -98,6 +153,16 @@ Deno.serve(async (req) => {
 
     const { user, email_data } = verifiedData;
 
+    // #region agent log
+    console.log("Extracted data:", {
+      emailActionType: email_data.email_action_type,
+      userEmail: user.email,
+      hasToken: !!email_data.token,
+      hasTokenHash: !!email_data.token_hash,
+      redirectTo: email_data.redirect_to,
+      siteUrl: email_data.site_url
+    });
+    // #endregion
     console.log("Email action type:", email_data.email_action_type);
     console.log("User email:", user.email);
     console.log("Site URL:", SITE_URL);
@@ -105,11 +170,14 @@ Deno.serve(async (req) => {
     // Verify Resend API key is configured
     if (!RESEND_API_KEY) {
       console.error("❌ RESEND_API_KEY not configured");
+      // #region agent log
+      console.error("RESEND_API_KEY is:", RESEND_API_KEY ? "exists but falsy" : "undefined");
+      // #endregion
       return new Response(
         JSON.stringify({
           error: {
             http_code: 500,
-            message: "Resend API key not configured",
+            message: "Resend API key not configured. Please set RESEND_API_KEY environment variable in Supabase dashboard.",
           },
         }),
         {
@@ -120,9 +188,24 @@ Deno.serve(async (req) => {
     }
 
     // Get email template based on email_action_type
+    // #region agent log
+    console.log("Generating email template for action type:", email_data.email_action_type);
+    // #endregion
     const emailContent = getEmailTemplate(email_data, user, SITE_URL);
 
+    // #region agent log
+    console.log("Email template generation result:", {
+      hasContent: !!emailContent,
+      hasSubject: !!emailContent?.subject,
+      hasHtml: !!emailContent?.html,
+      htmlLength: emailContent?.html?.length || 0
+    });
+    // #endregion
+
     if (!emailContent) {
+      // #region agent log
+      console.log(`⚠️ Unknown email action type: ${email_data.email_action_type}`);
+      // #endregion
       console.log(`⚠️ Unknown email action type: ${email_data.email_action_type}`);
       // Return success for unknown types (don't break auth flow)
       return new Response(JSON.stringify({}), {
@@ -171,6 +254,16 @@ Deno.serve(async (req) => {
 
       if (error) {
         console.error("❌ Resend API error:", error);
+        // Handle domain verification errors specifically
+        if ((error as any)?.statusCode === 403 && error.message?.includes("domain is not verified")) {
+          const domainError = new Error(
+            `Resend domain verification error: ${error.message}. ` +
+            `Please verify your sending domain at https://resend.com/domains ` +
+            `or update RESEND_FROM_EMAIL to use a verified domain like "onboarding@resend.dev".`
+          );
+          (domainError as any).statusCode = 403;
+          throw domainError;
+        }
         throw error;
       }
 
@@ -179,6 +272,22 @@ Deno.serve(async (req) => {
       // Single email (signup, password recovery, etc.)
       console.log(`📧 Sending email to: ${user.email}`);
 
+      // #region agent log
+      console.log("Attempting to send email via Resend:", {
+        from: RESEND_FROM_EMAIL,
+        to: user.email,
+        subject: emailContent.subject,
+        hasHtmlContent: !!emailContent.html,
+        htmlLength: emailContent.html?.length || 0,
+        resendApiKeyExists: !!RESEND_API_KEY,
+        resendApiKeyLength: RESEND_API_KEY?.length || 0
+      });
+      // #endregion
+      
+      // #region agent log
+      console.log("Calling resend.emails.send()...");
+      // #endregion
+      
       const { data, error } = await resend.emails.send({
         from: RESEND_FROM_EMAIL,
         to: [user.email],
@@ -186,12 +295,46 @@ Deno.serve(async (req) => {
         html: emailContent.html,
       });
 
+      // #region agent log
+      console.log("Resend API response received:", {
+        hasError: !!error,
+        hasData: !!data,
+        dataId: data?.id,
+        errorMessage: error?.message,
+        errorName: error?.name
+      });
+      // #endregion
+
       if (error) {
         console.error("❌ Resend API error:", error);
+        // #region agent log
+        console.error("Resend error details:", {
+          message: error.message,
+          name: error.name,
+          stack: error.stack,
+          code: (error as any)?.code,
+          statusCode: (error as any)?.statusCode
+        });
+        // #endregion
+        
+        // Handle domain verification errors specifically
+        if ((error as any)?.statusCode === 403 && error.message?.includes("domain is not verified")) {
+          const domainError = new Error(
+            `Resend domain verification error: ${error.message}. ` +
+            `Please verify your sending domain at https://resend.com/domains ` +
+            `or update RESEND_FROM_EMAIL to use a verified domain like "onboarding@resend.dev".`
+          );
+          (domainError as any).statusCode = 403;
+          throw domainError;
+        }
+        
         throw error;
       }
 
       console.log("✅ Email sent successfully! Message ID:", data?.id);
+      // #region agent log
+      console.log("Resend response:", { messageId: data?.id, status: "success" });
+      // #endregion
     }
 
     console.log("=== FUNCTION COMPLETED SUCCESSFULLY ===");
@@ -204,17 +347,32 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("❌ UNEXPECTED ERROR:", error);
     console.error("Error message:", error?.message);
+    console.error("Error stack:", error?.stack);
+    // #region agent log
+    console.error("Full error object:", {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code,
+      cause: error?.cause,
+      stack: error?.stack?.substring(0, 500) // First 500 chars of stack
+    });
+    // #endregion
     console.error("=== FUNCTION FAILED ===");
 
+    // Extract status code - prioritize statusCode from Resend errors
+    const statusCode = (error as any)?.statusCode || error?.code || 500;
+    const errorMessage = error?.message || "Internal server error";
+    
     return new Response(
       JSON.stringify({
         error: {
-          http_code: error?.code || 500,
-          message: error?.message || "Internal server error",
+          http_code: statusCode,
+          message: errorMessage,
+          details: Deno.env.get("DENO_ENV") === "development" ? error?.stack : undefined
         },
       }),
       {
-        status: error?.code || 500,
+        status: statusCode,
         headers: { "Content-Type": "application/json" },
       }
     );

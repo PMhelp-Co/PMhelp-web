@@ -884,17 +884,88 @@
   
   <!-- Announcement Banner Script -->
   <script>
-    // Announcement Banner functionality
-    (function() {
+    // Announcement Banner functionality - Fetches from Supabase database
+    (async function() {
       const BANNER_KEY = 'pmhelp_announcement_banner_dismissed';
       const banner = document.getElementById('announcement-banner');
+      const bannerLink = document.querySelector('.announcement-banner-link');
+      const badgeEl = document.querySelector('.announcement-badge');
+      const textEl = document.querySelector('.announcement-text');
       
       if (!banner) return;
       
       // Check if banner was previously dismissed
       const isDismissed = localStorage.getItem(BANNER_KEY);
+      if (isDismissed) return;
       
-      if (!isDismissed) {
+      // Wait for Supabase to be initialized
+      let retries = 0;
+      while ((!window.supabaseClient && !window.supabase) && retries < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries++;
+      }
+      
+      if (!window.supabaseClient && !window.supabase) {
+        console.warn('Supabase client not available, banner will not load from database');
+        return;
+      }
+      
+      const supabase = window.supabaseClient || window.supabase;
+      
+      try {
+        // Fetch active banner from Supabase
+        const { data: bannerData, error } = await supabase
+          .from('website_banners')
+          .select('*')
+          .eq('banner_key', 'homepage-announcement')
+          .eq('is_active', true)
+          .single();
+        
+        if (error) {
+          // If no banner found or error, banner stays hidden (graceful degradation)
+          console.log('No active banner found or error:', error.message);
+          return;
+        }
+        
+        if (!bannerData) return;
+        
+        // Check if banner is within date range
+        const now = new Date();
+        if (bannerData.start_date && new Date(bannerData.start_date) > now) return;
+        if (bannerData.end_date && new Date(bannerData.end_date) < now) return;
+        
+        // Update banner content dynamically
+        if (badgeEl) {
+          if (bannerData.badge_text) {
+            // Preserve the close button structure - badge text is before the close wrapper
+            const closeWrapper = badgeEl.querySelector('.announcement-close-wrapper');
+            if (closeWrapper) {
+              // Get the close wrapper HTML, then set badge text before it
+              const closeWrapperHTML = closeWrapper.outerHTML;
+              badgeEl.innerHTML = bannerData.badge_text + closeWrapperHTML;
+              // Re-attach the onclick handler to the new close button
+              const newCloseButton = badgeEl.querySelector('.announcement-close');
+              if (newCloseButton) {
+                newCloseButton.setAttribute('onclick', 'event.stopPropagation(); event.preventDefault(); closeAnnouncementBanner();');
+              }
+            } else {
+              badgeEl.textContent = bannerData.badge_text;
+            }
+            badgeEl.style.display = '';
+          } else {
+            // Hide badge if no badge_text
+            badgeEl.style.display = 'none';
+          }
+        }
+        
+        if (textEl && bannerData.text) {
+          textEl.textContent = bannerData.text;
+        }
+        
+        if (bannerLink && bannerData.link_url) {
+          bannerLink.href = bannerData.link_url;
+        }
+        
         // Show banner after a short delay for smooth appearance
         setTimeout(() => {
           banner.style.display = 'block';
@@ -905,6 +976,10 @@
             banner.style.opacity = '1';
           });
         }, 300);
+        
+      } catch (error) {
+        console.error('Error loading banner from database:', error);
+        // Graceful degradation - banner stays hidden if error
       }
     })();
     

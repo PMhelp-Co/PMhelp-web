@@ -115,7 +115,14 @@ const Auth = {
   // =====================================================
   async resetPassword(email, redirectUrl = null) {
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/auth.js:116',message:'resetPassword called',data:{email,redirectUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      
       if (!window.supabaseClient) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/auth.js:119',message:'Supabase client not initialized',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         throw new Error('Supabase client not initialized');
       }
 
@@ -126,11 +133,28 @@ const Auth = {
         redirectUrl = `${window.location.origin}/auth/confirm.html`;
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/auth.js:129',message:'Calling resetPasswordForEmail',data:{email,redirectUrl,supabaseClientExists:!!window.supabaseClient},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+
       const { data, error } = await window.supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl
       });
 
-      if (error) throw error;
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/auth.js:132',message:'resetPasswordForEmail response received',data:{hasError:!!error,errorMessage:error?.message,errorStatus:error?.status,hasData:!!data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+
+      if (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/auth.js:135',message:'Password reset error details',data:{message:error.message,status:error.status,name:error.name,code:error.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        throw error;
+      }
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/auth.js:142',message:'Password reset success',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
 
       return {
         success: true,
@@ -138,6 +162,9 @@ const Auth = {
       };
     } catch (error) {
       console.error('Password reset error:', error);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/auth.js:150',message:'Password reset catch block',data:{message:error?.message,status:error?.status,name:error?.name,code:error?.code,stack:error?.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
       return {
         success: false,
         error: error.message || 'Failed to send reset email'
@@ -493,6 +520,9 @@ async getSession() {
   init() {
     // Set up auth state change listener
     this.onAuthStateChange((event, session) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/auth.js:522',message:'Auth state change event received in Auth.init',data:{event,hasSession:!!session,userId:session?.user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
+      // #endregion
       console.log('Auth state changed:', event, session ? 'User signed in' : 'User signed out');
       
       // Dispatch custom event for other parts of the app

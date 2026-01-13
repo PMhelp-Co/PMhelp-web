@@ -96,6 +96,9 @@ async checkAuthState() {
 // Handle Auth State Change
 // =====================================================
 async handleAuthStateChange(event, session) {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/auth-state.js:98',message:'handleAuthStateChange called',data:{event,hasSession:!!session,currentPage:window.location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'K'})}).catch(()=>{});
+  // #endregion
   console.log('Auth state change event:', event);
 
   if (session) {
@@ -104,6 +107,9 @@ async handleAuthStateChange(event, session) {
     const userResult = await window.Auth.getCurrentUser();
     this.currentUser = userResult.user;
     this.isAuthenticated = true;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/auth-state.js:106',message:'Session set, authenticated',data:{userId:this.currentUser?.id,isAuthenticated:this.isAuthenticated},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+    // #endregion
   } else {
     this.currentSession = null;
     this.currentUser = null;

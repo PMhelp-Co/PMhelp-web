@@ -121,7 +121,7 @@ function createReportCard(report, index) {
   imageContainer.className = 'report-card-image-container';
   
   const image = document.createElement('img');
-  image.src = report.cover_image_url || 'images/reports/default-report-cover.png';
+  image.src = 'images/thumbnail.jpg';
   image.alt = report.title || 'Report cover';
   image.className = 'report-card-image';
   image.loading = 'lazy';
