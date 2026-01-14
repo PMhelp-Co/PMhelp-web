@@ -41,12 +41,18 @@ document.addEventListener('DOMContentLoaded', function() {
   // Anchor Link Handling (for marketing deep linking)
   // =====================================================
   function setupAnchorLink() {
-    // Check if URL has #form hash
-    if (window.location.hash === '#form') {
-      // Small delay to ensure DOM is fully ready and layout is stable
+    // Check if we should scroll to form (hash was removed by inline script)
+    // We use sessionStorage to track if we need to scroll
+    const shouldScrollToForm = sessionStorage.getItem('pmbuddy-scroll-to-form');
+    
+    if (shouldScrollToForm === 'true') {
+      // Clear the flag
+      sessionStorage.removeItem('pmbuddy-scroll-to-form');
+      
+      // Wait a bit for page to be fully ready, then smoothly scroll to form
       setTimeout(() => {
         scrollToForm();
-      }, 100);
+      }, 300);
     }
   }
 
