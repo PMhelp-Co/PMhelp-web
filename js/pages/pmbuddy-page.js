@@ -32,6 +32,34 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup form submissions
     setupFormSubmissions();
+    
+    // Handle anchor links (for marketing deep linking)
+    setupAnchorLink();
+  }
+
+  // =====================================================
+  // Anchor Link Handling (for marketing deep linking)
+  // =====================================================
+  function setupAnchorLink() {
+    // Check if URL has #form hash
+    if (window.location.hash === '#form') {
+      // Small delay to ensure DOM is fully ready and layout is stable
+      setTimeout(() => {
+        scrollToForm();
+      }, 100);
+    }
+  }
+
+  function scrollToForm() {
+    const formSection = document.getElementById('form');
+    if (formSection) {
+      // Use scrollIntoView with smooth behavior for better UX
+      // block: 'start' aligns the element to the top of the viewport
+      formSection.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
   }
 
   // =====================================================
@@ -45,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // If this is a hero button, scroll to forms section first
         if (isHeroButton) {
-          const formsSection = document.getElementById('interest-forms');
+          const formsSection = document.getElementById('form');
           if (formsSection) {
             formsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             // Wait a bit for scroll to start, then toggle form
