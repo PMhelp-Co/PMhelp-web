@@ -1,0 +1,9 @@
+# Netlify configuration for PMHelp
+# This file ensures proper redirects and proxy rules
+
+[[redirects]]
+  from = "/auth/*"
+  to = "https://igiemqicokpdyhunldtq.supabase.co/auth/:splat"
+  status = 200
+  force = true
+

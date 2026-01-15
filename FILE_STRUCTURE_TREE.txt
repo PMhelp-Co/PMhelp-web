@@ -1,0 +1,110 @@
+PMHelp Website - File Structure Tree
+=====================================
+
+zubbies/
+│
+├── HTML PAGES
+│   ├── index.html
+│   ├── learn.html
+│   ├── blog.html
+│   ├── about-us.html
+│   ├── community.html
+│   ├── privacy-policy.html
+│   ├── terms-and-condition.html
+│   ├── style-guide.html
+│   ├── 401.html
+│   │
+│   ├── [NEW] signin.html
+│   ├── [NEW] signup.html
+│   ├── [NEW] forgot-password.html
+│   ├── [NEW] reset-password.html
+│   ├── [NEW] dashboard.html
+│   │
+│   ├── detail_course.html
+│   ├── detail_course-lesson.html
+│   ├── detail_blog.html
+│   ├── detail_author.html
+│   ├── detail_content-sources.html
+│   ├── detail_stakeholders.html
+│   ├── detail_tags.html
+│   └── detail_testimonials.html
+│
+├── css/
+│   ├── normalize.css
+│   ├── webflow.css
+│   ├── zubbies-dandy-site.webflow.css
+│   └── [NEW] auth.css
+│
+├── js/
+│   ├── webflow.js
+│   │
+│   ├── [NEW] supabase-config.js
+│   ├── [NEW] auth.js
+│   ├── [NEW] auth-state.js
+│   ├── [NEW] header-auth.js
+│   ├── [NEW] route-guard.js
+│   ├── [NEW] progress.js
+│   │
+│   ├── utils/
+│   │   ├── [NEW] url-params.js
+│   │   ├── [NEW] form-validation.js
+│   │   ├── [NEW] date-format.js
+│   │   └── [NEW] error-handler.js
+│   │
+│   ├── api/
+│   │   ├── [NEW] courses.js
+│   │   ├── [NEW] lessons.js
+│   │   ├── [NEW] blog.js
+│   │   ├── [NEW] authors.js
+│   │   ├── [NEW] users.js
+│   │   ├── [NEW] progress.js
+│   │   ├── [NEW] feedback.js
+│   │   ├── [NEW] content-sources.js
+│   │   ├── [NEW] testimonials.js
+│   │   └── [NEW] tags.js
+│   │
+│   └── pages/
+│       ├── [NEW] learn-page.js
+│       ├── [NEW] course-detail-page.js
+│       ├── [NEW] lesson-page.js
+│       ├── [NEW] blog-page.js
+│       ├── [NEW] blog-detail-page.js
+│       ├── [NEW] signin-page.js
+│       ├── [NEW] signup-page.js
+│       └── [NEW] dashboard-page.js
+│
+├── images/
+│   ├── [existing images]
+│   ├── icons/
+│   │   ├── [NEW] user-icon.svg
+│   │   ├── [NEW] logout-icon.svg
+│   │   └── [NEW] loading-spinner.svg
+│   └── placeholders/
+│       └── [NEW] avatar-placeholder.png
+│
+├── fonts/
+│   └── [existing fonts]
+│
+├── [NEW] components/
+│   ├── loading-spinner.html
+│   ├── error-message.html
+│   ├── user-menu.html
+│   └── breadcrumbs.html
+│
+├── [NEW] config/
+│   ├── .env.example
+│   └── constants.js
+│
+├── README.md
+├── [NEW] PROJECT_PLAN.md
+├── [NEW] FILE_STRUCTURE.md
+├── [NEW] FILE_STRUCTURE_TREE.txt
+└── [NEW] .gitignore
+
+Legend:
+[NEW] = File needs to be created
+[existing] = File already exists
+No label = Existing file that may need updates
+
+
+

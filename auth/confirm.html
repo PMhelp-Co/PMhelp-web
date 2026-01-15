@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" data-wf-site="66bfc83501d1faf8dbade3d5">
+<head>
+  <meta charset="utf-8">
+  <title>Confirming Email - PMHelp</title>
+  <meta content="Confirming your email address" name="description">
+  <meta content="width=device-width, initial-scale=1" name="viewport">
+  <link href="../css/tailwind-auth.css" rel="stylesheet" type="text/css">
+  <link href="../images/favicon.png" rel="shortcut icon" type="image/x-icon">
+  <link href="../images/webclip.png" rel="apple-touch-icon">
+  
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/auth.js"></script>
+  
+  <style>
+    .shadow-soft {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #7e22ce;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  
+  <div class="w-full max-w-md space-y-8">
+    
+    <!-- Logo and Header -->
+    <div class="flex flex-col items-center">
+      <a href="../index.html" class="cursor-pointer">
+        <img src="../images/simple logo.png" alt="PMhelp Logo" class="h-12 w-auto mb-8">
+      </a>
+      <h2 class="mt-2 mb-0 text-center text-3xl font-bold tracking-tight text-gray-900">Confirming Email</h2>
+    </div>
+
+    <!-- Status Message -->
+    <div id="status-container" class="bg-white shadow-soft rounded-lg p-8 text-center">
+      <div id="loading" class="space-y-4">
+        <div class="spinner"></div>
+        <p class="text-gray-600">Please wait while we confirm your email...</p>
+      </div>
+      
+      <div id="success" class="hidden space-y-4">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+          <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900">Email Confirmed!</h3>
+        <p class="text-sm text-gray-600">Your email has been successfully verified. Redirecting you now...</p>
+      </div>
+      
+      <div id="error" class="hidden space-y-4">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+          <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900">Confirmation Failed</h3>
+        <p id="error-message" class="text-sm text-gray-600"></p>
+        <div class="mt-4">
+          <a href="../signin.html" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
+            Go to Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =====================================================
+    // Email Confirmation Handler
+    // =====================================================
+    // Parses URL fragment from Supabase redirect and sets session
+    // =====================================================
+
+    (async function handleEmailConfirmation() {
+      const loadingEl = document.getElementById('loading');
+      const successEl = document.getElementById('success');
+      const errorEl = document.getElementById('error');
+      const errorMessageEl = document.getElementById('error-message');
+
+      function parseHashFragment(hash) {
+        // Remove leading '#'
+        const frag = hash.startsWith('#') ? hash.slice(1) : hash;
+        if (!frag) return {};
+        
+        // Parse URLSearchParams from fragment
+        return Object.fromEntries(new URLSearchParams(frag));
+      }
+
+      try {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:104',message:'Email confirmation page loaded',data:{hash:window.location.hash?.substring(0,50),hasSupabaseClient:!!window.supabaseClient},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H48'})}).catch(()=>{});
+        // #endregion
+        // Wait for Supabase client to be available
+        if (!window.supabaseClient) {
+          // Wait a bit and retry
+          await new Promise(resolve => setTimeout(resolve, 500));
+          if (!window.supabaseClient) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:110',message:'Supabase client not initialized in confirm page',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H48'})}).catch(()=>{});
+            // #endregion
+            throw new Error('Supabase client not initialized');
+          }
+        }
+
+        const params = parseHashFragment(window.location.hash || '');
+        const access_token = params['access_token'];
+        const refresh_token = params['refresh_token'];
+        const error = params['error'];
+        const error_description = params['error_description'];
+        const type = params['type']; // signup, recovery, etc.
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:119',message:'Parsed hash fragment',data:{hasAccessToken:!!access_token,hasRefreshToken:!!refresh_token,hasError:!!error,error,errorDescription:error_description,type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H49'})}).catch(()=>{});
+        // #endregion
+
+        // Check for errors in fragment
+        if (error) {
+          console.error('Auth redirect error:', error, error_description);
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:122',message:'Error in hash fragment',data:{error,errorDescription:error_description},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H50'})}).catch(()=>{});
+          // #endregion
+          loadingEl.classList.add('hidden');
+          errorEl.classList.remove('hidden');
+          
+          let errorMsg = 'An error occurred during email confirmation.';
+          if (error === 'token_expired') {
+            errorMsg = 'This confirmation link has expired. Please request a new one.';
+          } else if (error === 'invalid_token') {
+            errorMsg = 'This confirmation link is invalid. Please try signing up again.';
+          } else if (error_description) {
+            errorMsg = error_description;
+          }
+          
+          errorMessageEl.textContent = errorMsg;
+          return;
+        }
+
+        // Check if tokens are present
+        if (!access_token || !refresh_token) {
+          console.log('No tokens in fragment. User may have opened page directly.');
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:141',message:'No tokens in fragment',data:{hasAccessToken:!!access_token,hasRefreshToken:!!refresh_token},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H51'})}).catch(()=>{});
+          // #endregion
+          loadingEl.classList.add('hidden');
+          errorEl.classList.remove('hidden');
+          errorMessageEl.textContent = 'No confirmation data found. Please check your email and click the confirmation link again.';
+          return;
+        }
+
+        // Set session in Supabase client
+        console.log('Setting session from confirmation tokens...');
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:151',message:'Calling setSession',data:{hasAccessToken:!!access_token,hasRefreshToken:!!refresh_token,type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H52'})}).catch(()=>{});
+        // #endregion
+        const { data, error: setErr } = await window.supabaseClient.auth.setSession({
+          access_token,
+          refresh_token
+        });
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:156',message:'setSession response',data:{hasError:!!setErr,errorMessage:setErr?.message,errorStatus:setErr?.status,errorCode:setErr?.code,hasData:!!data,hasUser:!!data?.user,userId:data?.user?.id,userEmail:data?.user?.email,hasSession:!!data?.session},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H53'})}).catch(()=>{});
+        // #endregion
+
+        if (setErr) {
+          console.error('Failed to set session:', setErr);
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:158',message:'setSession error details',data:{message:setErr.message,status:setErr.status,code:setErr.code,name:setErr.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H54'})}).catch(()=>{});
+          // #endregion
+          loadingEl.classList.add('hidden');
+          errorEl.classList.remove('hidden');
+          
+          let errorMsg = 'Failed to complete email confirmation.';
+          if (setErr.message) {
+            errorMsg = setErr.message;
+          }
+          errorMessageEl.textContent = errorMsg;
+          return;
+        }
+
+        // Success! Session is now set
+        console.log('✅ Session set successfully!', data);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:170',message:'Email confirmation successful',data:{userId:data?.user?.id,userEmail:data?.user?.email,type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H55'})}).catch(()=>{});
+        // #endregion
+        
+        // Clear URL fragment so tokens aren't visible
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+
+        // Show success message
+        loadingEl.classList.add('hidden');
+        successEl.classList.remove('hidden');
+
+        // Trigger auth state update (in case other parts of the app are listening)
+        if (window.Auth && window.Auth.onAuthStateChange) {
+          // Auth state will be updated automatically by Supabase client
+        }
+
+        // Redirect after a short delay
+        setTimeout(() => {
+          // Check if there's a redirect URL in sessionStorage (from route guard)
+          const redirectUrl = window.RouteGuard?.getRedirectUrl();
+          
+          if (redirectUrl) {
+            window.location.href = redirectUrl;
+          } else {
+            // Default redirect based on confirmation type
+            if (type === 'recovery') {
+              window.location.href = '../reset-password.html';
+            } else {
+              window.location.href = '../index.html';
+            }
+          }
+        }, 2000);
+
+      } catch (e) {
+        console.error('Unexpected error during email confirmation:', e);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:201',message:'Unexpected error in confirm page',data:{message:e?.message,stack:e?.stack?.substring(0,300)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H56'})}).catch(()=>{});
+        // #endregion
+        loadingEl.classList.add('hidden');
+        errorEl.classList.remove('hidden');
+        errorMessageEl.textContent = 'An unexpected error occurred. Please try again or contact support.';
+      }
+    })();
+  </script>
+</body>
+</html>
+
