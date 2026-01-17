@@ -131,6 +131,9 @@
       const successEl = document.getElementById('success');
       const errorEl = document.getElementById('error');
       const errorMessageEl = document.getElementById('error-message');
+      
+      // Supabase URL for function calls
+      const SUPABASE_URL = 'https://igiemqicokpdyhunldtq.supabase.co';
 
       function parseHashFragment(hash) {
         // Remove leading '#'
@@ -259,6 +262,39 @@
             window.location.href = '../reset-password.html';
           }
           return; // Exit early, don't show verification success message
+        }
+
+        // For email verification (signup), send welcome email
+        if (type === 'signup' && data?.user) {
+          try {
+            // Send welcome email via Edge Function
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (session) {
+              const response = await fetch(`${SUPABASE_URL}/functions/v1/auth-email-handler`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                  action: 'welcome',
+                  user: {
+                    email: data.user.email,
+                    user_metadata: data.user.user_metadata || {}
+                  }
+                })
+              });
+              
+              if (response.ok) {
+                console.log('✅ Welcome email sent successfully');
+              } else {
+                console.warn('⚠️ Failed to send welcome email:', await response.text());
+              }
+            }
+          } catch (error) {
+            // Don't block the flow if welcome email fails
+            console.warn('⚠️ Error sending welcome email:', error);
+          }
         }
 
         // For email verification (signup), show success message

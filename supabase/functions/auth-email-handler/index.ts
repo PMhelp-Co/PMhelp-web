@@ -62,10 +62,59 @@ Deno.serve(async (req) => {
       return new Response("Method not allowed", { status: 405 });
     }
 
-    // Get raw payload as text (needed for webhook verification)
+    // Get raw payload as text (needed for webhook verification or JSON parsing)
     const payload = await req.text();
     const headers = Object.fromEntries(req.headers);
     
+    // Check if this is a direct welcome email request (has Authorization header, no webhook signature)
+    const hasAuthHeader = !!headers["authorization"] || !!headers["Authorization"];
+    const hasWebhookSignature = !!headers["svix-signature"];
+    
+    // If it's a direct authenticated call (for welcome emails), handle it differently
+    if (hasAuthHeader && !hasWebhookSignature) {
+      try {
+        const body = JSON.parse(payload);
+        if (body.action === 'welcome' && body.user) {
+          console.log("📧 Sending welcome email (direct call) to:", body.user.email);
+          
+          const welcomeSubject = "Welcome to your product tribe. We saved you a seat!";
+          const welcomeHtml = getWelcomeEmailTemplate(body.user, SITE_URL);
+          
+          const { data, error } = await resend.emails.send({
+            from: RESEND_FROM_EMAIL,
+            to: [body.user.email],
+            subject: welcomeSubject,
+            html: welcomeHtml,
+          });
+          
+          if (error) {
+            console.error("❌ Resend API error:", error);
+            throw error;
+          }
+          
+          console.log("✅ Welcome email sent successfully! Message ID:", data?.id);
+          return new Response(JSON.stringify({ success: true, messageId: data?.id }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      } catch (error) {
+        console.error("❌ Error handling welcome email request:", error);
+        return new Response(
+          JSON.stringify({
+            error: {
+              http_code: 400,
+              message: "Invalid welcome email request",
+            },
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     // #region agent log
     console.log("Payload received - length:", payload.length);
     console.log("Payload preview (first 200 chars):", payload.substring(0, 200));
@@ -82,7 +131,7 @@ Deno.serve(async (req) => {
     console.log("Has webhook signature header:", !!headers["svix-signature"]);
     // #endregion
 
-    // Verify webhook secret is configured
+    // Verify webhook secret is configured (only needed for webhook requests)
     if (!SEND_EMAIL_HOOK_SECRET || !hookSecret) {
       console.error("❌ SEND_EMAIL_HOOK_SECRET not configured");
       // #region agent log
@@ -192,8 +241,6 @@ Deno.serve(async (req) => {
     console.log("Generating email template for action type:", email_data.email_action_type);
     // #endregion
     const emailContent = getEmailTemplate(email_data, user, SITE_URL);
-    
-    // After sending verification email, we'll also send welcome email (handled separately after verification)
 
     // #region agent log
     console.log("Email template generation result:", {
@@ -588,6 +635,52 @@ function getEmailChangeTemplate(
     <p style="color: #666; font-size: 14px; margin-top: 30px;">
       If you didn't request this change, please contact support immediately.
     </p>
+  </div>
+</body>
+</html>
+  `;
+}
+
+function getWelcomeEmailTemplate(user: User, siteUrl: string): string {
+  // Extract first name from user metadata or email
+  const firstName = user.user_metadata?.full_name?.split(' ')[0] || '';
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi,';
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #7e22ce, #9333ea); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0;">PMHelp</h1>
+  </div>
+  
+  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+    <h2 style="color: #333; margin-top: 0;">Welcome to your product tribe. We saved you a seat!</h2>
+    
+    <p>${greeting}</p>
+    
+    <p>Welcome to PMHelp.</p>
+    
+    <p>You've just joined a community built to make product management clearer, more practical, and less overwhelming. Whether you're exploring product management for the first time or deepening your skills, you're in the right place.</p>
+    
+    <p>Inside PMHelp, you'll find:</p>
+    
+    <ul style="color: #666; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+      <li>Our Free Beginner Product Management Course, that's practical and insightful</li>
+      <li>Monthly Hands-on workshops on several product management topics and areas.</li>
+      <li>A supportive community of product managers navigating similar paths.</li>
+      <li>Mentorship and internship opportunities</li>
+    </ul>
+    
+    <p>Take your time to explore the platform and get comfortable. Growth does not need to be rushed to be meaningful.</p>
+    
+    <p>We're glad you found us and we're excited to support your journey.</p>
+    
+    <p style="margin-top: 30px;">With love,<br>The PMHelp Team</p>
   </div>
 </body>
 </html>
