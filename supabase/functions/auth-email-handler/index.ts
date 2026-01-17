@@ -192,6 +192,8 @@ Deno.serve(async (req) => {
     console.log("Generating email template for action type:", email_data.email_action_type);
     // #endregion
     const emailContent = getEmailTemplate(email_data, user, SITE_URL);
+    
+    // After sending verification email, we'll also send welcome email (handled separately after verification)
 
     // #region agent log
     console.log("Email template generation result:", {
@@ -387,15 +389,15 @@ function getEmailTemplate(
   switch (email_data.email_action_type) {
     case "signup":
       return {
-        subject: "Welcome to PMHelp! Confirm your email",
-        html: getSignupEmailTemplate(email_data, siteUrl),
+        subject: "Welcome onboard! Verify your email",
+        html: getSignupEmailTemplate(email_data, user, siteUrl),
       };
       // ... existing cases above ...
       case "recovery":
         case "password_recovery":
           return {
-            subject: "Reset your PMHelp password",
-            html: getPasswordResetEmailTemplate(email_data, siteUrl),
+            subject: "Reset your password",
+            html: getPasswordResetEmailTemplate(email_data, user, siteUrl),
           };
   // ... existing cases below ...
 
@@ -423,7 +425,7 @@ function getEmailTemplate(
   }
 }
 
-function getSignupEmailTemplate(email_data: EmailData, siteUrl: string): string {
+function getSignupEmailTemplate(email_data: EmailData, user: User, siteUrl: string): string {
   // IMPORTANT:
   // - For /auth/v1/verify, use token_hash (not token)
   // - For signup confirmation, use type=signup
@@ -441,6 +443,10 @@ function getSignupEmailTemplate(email_data: EmailData, siteUrl: string): string 
     `&type=signup` +
     `&redirect_to=${redirectTo}`;
 
+  // Extract first name from user metadata or email
+  const firstName = user.user_metadata?.full_name?.split(' ')[0] || '';
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi,';
+  
   return `
 <!DOCTYPE html>
 <html>
@@ -454,31 +460,35 @@ function getSignupEmailTemplate(email_data: EmailData, siteUrl: string): string 
   </div>
   
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-    <h2 style="color: #333; margin-top: 0;">Welcome to PMHelp!</h2>
+    <p style="color: #666; font-size: 14px; margin-top: 0; margin-bottom: 10px;">Just one quick step, then you're in 🤍</p>
     
-    <p>Hello,</p>
+    <h2 style="color: #333; margin-top: 0; margin-bottom: 20px;">Welcome onboard! Verify your email</h2>
     
-    <p>Thank you for signing up! Please confirm your email address to get started.</p>
+    <p>${greeting}</p>
+    
+    <p>Thanks for signing up to our platform.</p>
+    
+    <p>To complete your registration and secure your account, please verify your email address by clicking the button below:</p>
     
     <div style="text-align: center; margin: 30px 0;">
       <a href="${confirmationUrl}" style="background: linear-gradient(135deg, #7e22ce, #9333ea); color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
-        Confirm Email Address
+        👉 Verify my email
       </a>
     </div>
     
-    <p style="color: #666; font-size: 14px;">Or copy and paste this link:</p>
-    <p style="color: #9333ea; font-size: 12px; word-break: break-all;">${confirmationUrl}</p>
+    <p style="color: #666; font-size: 14px;">Or copy and paste the link below into your browser.</p>
+    <p style="color: #9333ea; font-size: 12px; word-break: break-all; background: #f9fafb; padding: 12px; border-radius: 4px;">${confirmationUrl}</p>
     
-    <p style="color: #666; font-size: 14px; margin-top: 30px;">
-      If you didn't create an account, you can safely ignore this email.
-    </p>
+    <p style="color: #666; font-size: 14px; margin-top: 20px;">Our emails sometimes land in the spam or promotions folder. In case you found this one there, please mark us as "Not Spam" so you don't miss future updates from us.</p>
+    
+    <p style="color: #666; font-size: 14px; margin-top: 10px;">This helps us keep your account safe and ensures you don't miss important opportunities, and resources.</p>
   </div>
 </body>
 </html>
   `;
 }
 
-function getPasswordResetEmailTemplate(email_data: EmailData, siteUrl: string): string {
+function getPasswordResetEmailTemplate(email_data: EmailData, user: User, siteUrl: string): string {
   // Use Supabase's built-in verification endpoint for password reset
   // For /auth/v1/verify: use token_hash (NOT token) and type=recovery
   const defaultRedirect = `${siteUrl}/auth/confirm.html`;
@@ -489,6 +499,10 @@ function getPasswordResetEmailTemplate(email_data: EmailData, siteUrl: string): 
   const redirectTo = encodeURIComponent(redirectTarget);
   const resetUrl = `${SUPABASE_URL}/auth/v1/verify?token=${email_data.token_hash}&type=recovery&redirect_to=${redirectTo}`;
 
+  // Extract first name from user metadata or email
+  const firstName = user.user_metadata?.full_name?.split(' ')[0] || '';
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi,';
+  
   return `
 <!DOCTYPE html>
 <html>
@@ -502,24 +516,24 @@ function getPasswordResetEmailTemplate(email_data: EmailData, siteUrl: string): 
   </div>
   
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-    <h2 style="color: #333; margin-top: 0;">Reset Your Password</h2>
+    <h2 style="color: #333; margin-top: 0;">Reset your password</h2>
     
-    <p>Hello,</p>
+    <p>${greeting}</p>
     
-    <p>We received a request to reset your password for your PMHelp account.</p>
+    <p>It happens to the best of us.</p>
+    
+    <p>We received a request to reset the password for your account. You can set a new password by clicking the button below:</p>
     
     <div style="text-align: center; margin: 30px 0;">
       <a href="${resetUrl}" style="background: linear-gradient(135deg, #7e22ce, #9333ea); color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
-        Reset Password
+        Reset my password
       </a>
     </div>
     
     <p style="color: #666; font-size: 14px;">Or copy and paste this link:</p>
-    <p style="color: #9333ea; font-size: 12px; word-break: break-all;">${resetUrl}</p>
+    <p style="color: #9333ea; font-size: 12px; word-break: break-all; background: #f9fafb; padding: 12px; border-radius: 4px;">${resetUrl}</p>
     
-    <p style="color: #666; font-size: 14px; margin-top: 30px;">
-      This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.
-    </p>
+    <p style="color: #666; font-size: 14px; margin-top: 20px;">This link will expire in 1 hour. If you did not request a password reset, you can ignore this email.</p>
   </div>
 </body>
 </html>

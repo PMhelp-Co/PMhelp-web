@@ -18,6 +18,9 @@
     .shadow-soft {
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
+    .shadow-soft-lg {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
     .spinner {
       border: 3px solid #f3f3f3;
       border-top: 3px solid #7e22ce;
@@ -31,9 +34,15 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    .status-card {
+      transition: all 0.3s ease;
+    }
+    .status-card:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+<body class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
   
   <div class="w-full max-w-md space-y-8">
     
@@ -46,32 +55,48 @@
     </div>
 
     <!-- Status Message -->
-    <div id="status-container" class="bg-white shadow-soft rounded-lg p-8 text-center">
+    <div id="status-container" class="bg-white shadow-soft status-card rounded-2xl p-8 text-center border border-gray-100">
       <div id="loading" class="space-y-4">
         <div class="spinner"></div>
-        <p class="text-gray-600">Please wait while we confirm your email...</p>
+        <p class="text-gray-600 font-medium">Please wait while we confirm your email...</p>
       </div>
       
-      <div id="success" class="hidden space-y-4">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-          <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      <div id="success" class="hidden space-y-6">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-green-600 shadow-lg">
+          <svg class="h-8 w-8" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
           </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-900">Email Confirmed!</h3>
-        <p class="text-sm text-gray-600">Your email has been successfully verified. Redirecting you now...</p>
+        <div class="space-y-2">
+          <h3 class="text-2xl font-bold text-gray-900">Email Confirmed!</h3>
+          <p class="text-base text-gray-600 leading-relaxed">Your email has been successfully verified. Redirecting you now...</p>
+        </div>
       </div>
       
-      <div id="error" class="hidden space-y-4">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-          <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      <div id="verification-info" class="hidden mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-start">
+          <svg class="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div>
+            <p class="text-sm font-medium text-blue-800">📬 Didn't see the email?</p>
+            <p class="text-sm text-blue-700 mt-1">Check your spam or promotions folder. If you found it there, please mark us as "Not Spam" so you don't miss future updates.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div id="error" class="hidden space-y-6">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-red-400 to-red-600 shadow-lg">
+          <svg class="h-8 w-8" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-900">Confirmation Failed</h3>
-        <p id="error-message" class="text-sm text-gray-600"></p>
-        <div class="mt-4">
-          <a href="../signin.html" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
+        <div class="space-y-2">
+          <h3 class="text-2xl font-bold text-gray-900">Confirmation Failed</h3>
+          <p id="error-message" class="text-base text-gray-600 max-w-md mx-auto leading-relaxed"></p>
+        </div>
+        <div class="pt-2">
+          <a href="../signin.html" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-semibold rounded-full text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-soft hover:shadow-soft-lg transition-all duration-200 transform hover:scale-105 active:scale-95">
             Go to Sign In
           </a>
         </div>
@@ -80,6 +105,21 @@
   </div>
 
   <script>
+    // =====================================================
+    // URL Cleanup - Remove hash fragment immediately on load
+    // =====================================================
+    // This prevents ugly URLs from being visible in the address bar
+    (function cleanupURL() {
+      // Save hash before it's removed
+      const hash = window.location.hash;
+      if (hash) {
+        // Store in sessionStorage before removing from URL
+        sessionStorage.setItem('auth_confirmation_hash', hash);
+        // Remove hash from URL immediately
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    })();
+
     // =====================================================
     // Email Confirmation Handler
     // =====================================================
@@ -102,22 +142,31 @@
       }
 
       try {
+        // Get hash from sessionStorage (stored before URL cleanup)
+        const savedHash = sessionStorage.getItem('auth_confirmation_hash') || '';
+        // Clear it after reading
+        if (savedHash) {
+          sessionStorage.removeItem('auth_confirmation_hash');
+        }
+        
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:104',message:'Email confirmation page loaded',data:{hash:window.location.hash?.substring(0,50),hasSupabaseClient:!!window.supabaseClient},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H48'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:116',message:'Email confirmation page loaded',data:{savedHash:savedHash?.substring(0,50),hasSupabaseClient:!!window.supabaseClient},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H48'})}).catch(()=>{});
         // #endregion
+        
         // Wait for Supabase client to be available
         if (!window.supabaseClient) {
           // Wait a bit and retry
           await new Promise(resolve => setTimeout(resolve, 500));
           if (!window.supabaseClient) {
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:110',message:'Supabase client not initialized in confirm page',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H48'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:126',message:'Supabase client not initialized in confirm page',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H48'})}).catch(()=>{});
             // #endregion
             throw new Error('Supabase client not initialized');
           }
         }
 
-        const params = parseHashFragment(window.location.hash || '');
+        // Parse hash from saved value (already cleaned from URL)
+        const params = parseHashFragment(savedHash);
         const access_token = params['access_token'];
         const refresh_token = params['refresh_token'];
         const error = params['error'];
@@ -125,7 +174,7 @@
         const type = params['type']; // signup, recovery, etc.
 
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:119',message:'Parsed hash fragment',data:{hasAccessToken:!!access_token,hasRefreshToken:!!refresh_token,hasError:!!error,error,errorDescription:error_description,type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H49'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/6d18e1f8-8607-4ebb-8d26-4a8060383b13',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:139',message:'Parsed hash fragment',data:{hasAccessToken:!!access_token,hasRefreshToken:!!refresh_token,hasError:!!error,error,errorDescription:error_description,type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H49'})}).catch(()=>{});
         // #endregion
 
         // Check for errors in fragment
@@ -194,13 +243,25 @@
 
         // Success! Session is now set
         console.log('✅ Session set successfully!', data);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/confirm.html:170',message:'Email confirmation successful',data:{userId:data?.user?.id,userEmail:data?.user?.email,type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H55'})}).catch(()=>{});
-        // #endregion
         
         // Clear URL fragment so tokens aren't visible
         history.replaceState(null, '', window.location.pathname + window.location.search);
 
+        // Check if this is a password reset flow (type === 'recovery')
+        // For password reset, skip showing "email verification successful" message
+        // and redirect directly to reset password page
+        if (type === 'recovery' || type === 'password_recovery') {
+          // For password reset, redirect immediately without showing verification success
+          const redirectUrl = window.RouteGuard?.getRedirectUrl();
+          if (redirectUrl) {
+            window.location.href = redirectUrl;
+          } else {
+            window.location.href = '../reset-password.html';
+          }
+          return; // Exit early, don't show verification success message
+        }
+
+        // For email verification (signup), show success message
         // Show success message
         loadingEl.classList.add('hidden');
         successEl.classList.remove('hidden');
@@ -218,12 +279,8 @@
           if (redirectUrl) {
             window.location.href = redirectUrl;
           } else {
-            // Default redirect based on confirmation type
-            if (type === 'recovery') {
-              window.location.href = '../reset-password.html';
-            } else {
-              window.location.href = '../index.html';
-            }
+            // Default redirect for email verification
+            window.location.href = '../index.html';
           }
         }, 2000);
 

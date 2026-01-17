@@ -60,13 +60,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 2000);
       } else {
         showMessage('Account created successfully! Please check your email to verify your account.', false);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/pages/signup-page.js:56',message:'Sign-up successful, redirecting to signin',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H38'})}).catch(()=>{});
-        // #endregion
-        // Redirect after 2 seconds
+        // Show spam folder reminder
+        const spamReminder = document.getElementById('spam-reminder');
+        if (spamReminder) {
+          spamReminder.classList.remove('hidden');
+        }
+        // Don't redirect immediately - let user see the spam reminder
+        // Redirect after 5 seconds instead of 2
         setTimeout(() => {
           window.location.href = 'signin.html';
-        }, 2000);
+        }, 5000);
       }
     } else {
       // #region agent log

@@ -42,6 +42,12 @@ document.addEventListener('DOMContentLoaded', function() {
       showMessage('Password reset link sent! Please check your email.', false);
       resetButton.textContent = 'Link Sent';
       
+      // Show spam folder reminder
+      const spamReminder = document.getElementById('spam-reminder');
+      if (spamReminder) {
+        spamReminder.classList.remove('hidden');
+      }
+      
       // Clear form
       document.getElementById('email').value = '';
     } else {

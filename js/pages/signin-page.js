@@ -56,6 +56,21 @@ document.addEventListener('DOMContentLoaded', function() {
       fetch('http://127.0.0.1:7242/ingest/46e91860-3131-4ee5-9172-bd43e7c7305a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'js/pages/signin-page.js:56',message:'Sign-in successful, refreshing auth state',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H32'})}).catch(()=>{});
       // #endregion
       
+      // Check if email is verified - show warning if not
+      const user = result.user;
+      if (user && !user.email_confirmed_at) {
+        const verificationWarning = document.getElementById('verification-warning');
+        if (verificationWarning) {
+          verificationWarning.classList.remove('hidden');
+        }
+        // Don't block sign-in, just show the warning
+      } else {
+        const verificationWarning = document.getElementById('verification-warning');
+        if (verificationWarning) {
+          verificationWarning.classList.add('hidden');
+        }
+      }
+      
       // Refresh auth state to ensure it's updated before redirect
       if (window.AuthState?.checkAuthState) {
         await window.AuthState.checkAuthState();
